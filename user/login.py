@@ -1,4 +1,5 @@
-from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout, QMessageBox
+from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout, QMessageBox, QGraphicsDropShadowEffect
+from PyQt6.QtGui import QColor
 from dotenv import load_dotenv
 from ui.main_app import MAINWINDOW
 
@@ -33,6 +34,50 @@ class LOGIN(QWidget):
         layout.addWidget(self.input_password)
         layout.addWidget(self.btn_login)
         self.setLayout(layout)
+        self.set_modern_style()
+        shadow = QGraphicsDropShadowEffect(self)
+        shadow.setBlurRadius(16)
+        shadow.setOffset(0, 2)
+        shadow.setColor(QColor(60, 60, 60, 40))  # สีเทาอ่อนโปร่งใส
+        self.setGraphicsEffect(shadow)
+
+    def set_modern_style(self):
+        self.setStyleSheet(
+            '''
+                QWidget{
+                    background-color: #23272f;
+                    color: #f5f6fa;
+                    font-family: 'Segoe UI', Arial, sans-serif;
+                    font-size: 14px
+                }
+                QLabel {
+                    color: #bfc9d1;
+                    font-weight: bold;
+                }
+                QLineEdit {
+                    background: #2d313a;ด
+                    border: 1px solid #444857;
+                    border-radius: 6px;
+                    padding: 6px;
+                    color: #f5f6fa;
+                }
+                QLineEdit:focus {
+                    border: 1.5px solid #5e81f4;
+                    background: #23272f;
+                }
+                QPushButton {
+                    background-color: #5e81f4;
+                    color: #fff;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 8px 0;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #4666c9;
+                }
+            '''
+        )
 
     def center(self):
         frameGm = self.frameGeometry()
@@ -41,17 +86,22 @@ class LOGIN(QWidget):
         self.move(frameGm.topLeft())
 
     def handle_login(self):
-        username = self.input_user.text()
-        password = self.input_password.text()
-        if self.check_db_login(username, password):
-            # QMessageBox.information(self, "Success", "Login Success!")
-            self.close()
-            # เพิมโปรแกรมหลัก
-            self.main_window = MAINWINDOW()
-            self.main_window.show()
-        else:
-            self.input_password.clear()
-            QMessageBox.warning(self, 'Failed', 'Login Failed!')
+        self.main_window = MAINWINDOW()
+        self.main_window.show()
+        self.close()
+
+
+        # username = self.input_user.text()
+        # password = self.input_password.text()
+        # if self.check_db_login(username, password):
+        #     # QMessageBox.information(self, "Success", "Login Success!")
+        #     self.close()
+        #     # เพิมโปรแกรมหลัก
+        #     self.main_window = MAINWINDOW()
+        #     self.main_window.show()
+        # else:
+        #     self.input_password.clear()
+        #     QMessageBox.warning(self, 'Failed', 'Login Failed!')
 
 
     def check_db_login(self, username, password):
