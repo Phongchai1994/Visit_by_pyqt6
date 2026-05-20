@@ -22,12 +22,12 @@ class MENU_FRAME(QFrame):
         self.setFixedWidth(230)
         layout = QVBoxLayout()
         add_section_label('DASHBOARD',layout)
-        btn_summery = QPushButton('สรุปผลข้อมูล')
-        layout.addWidget(btn_summery)
-
+        self.btn_summery = QPushButton('สรุปผลข้อมูล')
+        layout.addWidget(self.btn_summery)
 
         add_section_label('จัดการข้อมูลผู้ต้องขัง',layout)
-        layout.addWidget(QPushButton('ลงทะเบียนผู้ต้องขัง'))
+        self.btn_prisoner_register = QPushButton('ลงทะเบียนผู้ต้องขัง')
+        layout.addWidget(self.btn_prisoner_register)
         layout.addWidget(QPushButton('รายชื่อผู้ต้องขัง'))
 
         add_section_label('จัดการข้อมูลญาติ',layout)
@@ -59,6 +59,8 @@ class MENU_FRAME(QFrame):
                 border: 1.5px solid #e0e0e0;
                 border-radius: 10px;
                 margin: 10px 1px 10px 10px;
+                font-family: 'Sarabun', Arial, sans-serif;
+                           
             }
             QLabel {
                 color: #333;
@@ -80,6 +82,6 @@ class MENU_FRAME(QFrame):
             QPushButton:hover {
                 background: #e3e8f0;
                 color: #1a73e8;
-                border: 1.5px solid #b3c6f7;
+                border: 1px solid #b3c6f7;
             }
         """)

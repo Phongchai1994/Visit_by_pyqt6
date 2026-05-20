@@ -1,6 +1,10 @@
 from PyQt6.QtWidgets import QFrame, QVBoxLayout, QApplication, QMainWindow, QWidget, QHBoxLayout, QLabel, QGraphicsDropShadowEffect
-from PyQt6.QtGui import QColor
+from PyQt6.QtGui import QColor, QIcon
 from ui.menu_frame import MENU_FRAME
+from ui.dashboard.dashboard_widget import Dashboard_Widget
+from ui.prisoner.register_prisoner import Prisoner_register_widget
+from utils.resource import Resource_Helper
+
 
 import sys
 
@@ -9,12 +13,17 @@ class MAINWINDOW(QMainWindow):
         super().__init__()
         self.setWindowTitle('MAIN WINDOW')
         self.setGeometry(200, 200, 720, 480)
+        self.setWindowIcon(QIcon(Resource_Helper.resource_path('ico.ico')))
 
         central = QWidget()
         layout = QHBoxLayout(central)
         layout.setContentsMargins(0, 0, 0, 0)
+
+        # รับค่าการคลิกปุ่ม
         self.menu = MENU_FRAME(self)
         layout.addWidget(self.menu)
+        self.menu.btn_summery.clicked.connect(self.show_dashboard)
+        self.menu.btn_prisoner_register.clicked.connect(self.show_prisoner_register)
 
         # สร้าง QFrame สำหรับ main content
         self.main_content = QFrame()
@@ -41,7 +50,7 @@ class MAINWINDOW(QMainWindow):
             QMainWindow, QWidget {
                 background: #fff;
                 color: #23272f;
-                font-family: 'Segoe UI', Arial, sans-serif;
+                font-family: 'Sarabun', Arial, sans-serif;
                 font-size: 15px;
             }
             QFrame#mainContentFrame {
@@ -60,3 +69,18 @@ class MAINWINDOW(QMainWindow):
                 margin: 32px 24px;
             }
         """)
+
+    def show_dashboard(self):
+        # ลบ widget เดิมใน main_content
+        for i in reversed(range(self.main_content.layout().count())):
+            widget = self.main_content.layout().itemAt(i).widget()
+            if widget:
+                widget.setParent(None)
+        self.main_content.layout().addWidget(Dashboard_Widget())
+
+    def show_prisoner_register(self):
+        for i in reversed(range(self.main_content.layout().count())):
+            widget = self.main_content.layout().itemAt(i).widget()
+            if widget:
+                widget.setParent(None)
+        self.main_content.layout().addWidget(Prisoner_register_widget())

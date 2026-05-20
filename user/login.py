@@ -1,14 +1,17 @@
-from PyQt6.QtWidgets import QApplication, QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout, QMessageBox, QGraphicsDropShadowEffect
+from PyQt6.QtWidgets import QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout, QMessageBox, QGraphicsDropShadowEffect
 from PyQt6.QtGui import QColor
+from PyQt6.QtCore import Qt
+
 from dotenv import load_dotenv
 from ui.main_app import MAINWINDOW
+from utils.resource import Resource_Helper
 
 import sys
 import psycopg2
 import os
 import hashlib
 
-load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '.env'))
+load_dotenv(Resource_Helper.resource_path('.env'))
 
 class LOGIN(QWidget):
     def __init__(self):
@@ -35,6 +38,7 @@ class LOGIN(QWidget):
         layout.addWidget(self.btn_login)
         self.setLayout(layout)
         self.set_modern_style()
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         shadow = QGraphicsDropShadowEffect(self)
         shadow.setBlurRadius(16)
         shadow.setOffset(0, 2)
@@ -44,26 +48,26 @@ class LOGIN(QWidget):
     def set_modern_style(self):
         self.setStyleSheet(
             '''
-                QWidget{
-                    background-color: #23272f;
-                    color: #f5f6fa;
-                    font-family: 'Segoe UI', Arial, sans-serif;
+                QWidget {
+                    background-color: #fff;
+                    color: #222;
+                    font-family: 'Sarabun', Arial, sans-serif;
                     font-size: 14px
                 }
                 QLabel {
-                    color: #bfc9d1;
+                    color: #333;
                     font-weight: bold;
                 }
                 QLineEdit {
-                    background: #2d313a;ด
-                    border: 1px solid #444857;
+                    background: #f5f6fa;
+                    border: 1px solid #e0e0e0;
                     border-radius: 6px;
                     padding: 6px;
-                    color: #f5f6fa;
+                    color: #222;
                 }
                 QLineEdit:focus {
                     border: 1.5px solid #5e81f4;
-                    background: #23272f;
+                    background: #fff;
                 }
                 QPushButton {
                     background-color: #5e81f4;
@@ -89,7 +93,6 @@ class LOGIN(QWidget):
         self.main_window = MAINWINDOW()
         self.main_window.show()
         self.close()
-
 
         # username = self.input_user.text()
         # password = self.input_password.text()
