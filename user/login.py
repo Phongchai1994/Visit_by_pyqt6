@@ -20,6 +20,7 @@ class LOGIN(QWidget):
 
         self.setWindowTitle('Login')
         self.setGeometry(100, 100, 300, 150)
+        self.setWindowFlag(Qt.WindowType.WindowStaysOnTopHint, True)
         self.center()
         layout = QVBoxLayout()
 

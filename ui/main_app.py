@@ -61,6 +61,8 @@ class MAINWINDOW(QMainWindow):
         shadow.setColor(QColor(60, 60, 60, 40))  # สีเทาอ่อนโปร่งใส
         self.main_content.setGraphicsEffect(shadow)
 
+        self.showMaximized()
+
     def show_dashboard(self):
         # ลบ widget เดิมใน main_content
         for i in reversed(range(self.main_content.layout().count())):

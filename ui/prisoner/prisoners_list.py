@@ -1,9 +1,20 @@
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QTableView, QHBoxLayout, QSpacerItem, QSizePolicy
+from PyQt6.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QLabel,
+    QTableView,
+    QHBoxLayout,
+    QSpacerItem,
+    QSizePolicy,
+    QHeaderView
+)
 from PyQt6.QtCore import Qt, QAbstractTableModel
+from PyQt6.QtGui import QBrush, QColor
+
 from db.db import POSTGRESQL
 from ui.alert_box import AlertBox
 
-class PrisonerTableModel(QAbstractTableModel):
+class PrisonersTableModel(QAbstractTableModel):
     def __init__(self, data, headers):
         super().__init__()
         self._data = data
@@ -16,24 +27,66 @@ class PrisonerTableModel(QAbstractTableModel):
         return len(self._headers)
 
     def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+        if not index.isValid():
+            return None
+
+        row_data = self._data[index.row()]
+        value = row_data[index.column()]
+
         if role == Qt.ItemDataRole.DisplayRole:
-            return str(self._data[index.row()][index.column()])
+            return "" if value is None else str(value)
+
+        if role == Qt.ItemDataRole.ForegroundRole:
+            status_value = row_data[8] if len(row_data) > 8 else None
+            discipline_value = row_data[9] if len(row_data) > 9 else None
+
+            if discipline_value not in (None, "", "null", "None"):
+                return QBrush(QColor("#d32f2f"))
+
+            if status_value == "ไม่อยู่":
+                return QBrush(QColor("#b0b0b0"))
+
         return None
 
-    def headerData(self, section, orientation, role):
+    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):
         if role == Qt.ItemDataRole.DisplayRole:
             if orientation == Qt.Orientation.Horizontal:
                 return self._headers[section]
+            else:
+                return section + 1
         return None
+
+class ResponsiveTableView(QTableView):
+    def __init__(self, proportions, parent=None):
+        super().__init__(parent)
+        self.proportions = proportions
+
+    def apply_column_widths(self):
+        model = self.model()
+        if model is None:
+            return
+
+        total_width = self.viewport().width()
+        if total_width <= 0:
+            return
+
+        for i, proportion in enumerate(self.proportions):
+            self.setColumnWidth(i, max(20, int(total_width * proportion)))
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.apply_column_widths()
 
 class Prisoners_list(QWidget):
     def __init__(self):
         super().__init__()
         self.db = POSTGRESQL()
+
         self.setObjectName('main_prisoner_list_widget')
 
         main_layout = QVBoxLayout(self)
-        h_layout = QHBoxLayout()
+        main_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        main_layout.setContentsMargins(20, 12, 20, 12)
 
         # หัวข้อ
         title_label = QLabel('รายชื่อผู้ต้องขัง')
@@ -46,63 +99,102 @@ class Prisoners_list(QWidget):
             margin-top: 10px;
         ''')
 
-        # ตาราง
-        self.table = QTableView()
-        self.table.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
-        self.table.setSelectionMode(QTableView.SelectionMode.SingleSelection)
-        self.table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-
         # Layout
         vbox = QVBoxLayout()
+        vbox.addItem(QSpacerItem(0, 12, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed))
         vbox.addWidget(title_label)
-        vbox.addWidget(self.table)
-        vbox.addItem(QSpacerItem(0, 12, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
 
-        h_layout.addStretch(1)
-        h_layout.addLayout(vbox)
-        h_layout.addStretch(1)
+        main_layout.addLayout(vbox)
 
-        main_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        main_layout.setContentsMargins(20, 12, 20, 12)
-        main_layout.addLayout(h_layout)
-
-        self.setLayout(main_layout)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
-        self.setStyleSheet('''
-            #main_prisoner_list_widget {
-                background: #fff;
-                border: 1.5px solid #e0e0e0;
-                border-radius: 10px;
-                margin: 10px 10px 10px 1px;
-            }
-            QWidget {
-                background: #fff;
-                color: #222;
-                font-family: 'Sarabun', Arial, sans-serif;
-                font-size: 14px;
-            }
-            QLabel {
-                color: #333;
-                font-weight: bold;
-            }
-            QTableView {
-                background: #f5f6fa;
-                border: 1px solid #e0e0e0;
-                border-radius: 6px;
-                color: #222;
-                font-size: 14px;
-            }
-            QHeaderView::section {
-                background: #e0e0e0;
-                color: #222;
-                font-weight: bold;
-                border: none;
-                border-radius: 6px;
-                padding: 6px;
-            }
-        ''')
-
+        self.setStyleSheet("""
+                    #main_prisoner_list_widget {
+                        background: #fff;
+                        border: 1.5px solid #e0e0e0;
+                        border-radius: 10px;
+                        margin: 10px 10px 10px 1px;
+                    }
+                    QWidget {
+                        background: #fff;
+                        color: #222;
+                        font-family: 'Sarabun', Arial, sans-serif;
+                        font-size: 14px;
+                    }
+                    QLabel {
+                        color: #333;
+                        font-weight: bold;
+                    }
+                    QTableView {
+                        background: #f5f6fa;
+                        border: 1px solid #e0e0e0;
+                        border-radius: 6px;
+                        color: #222;
+                        font-size: 14px;
+                        gridline-color: #e8e8e8;
+                        selection-background-color: #d9e8ff;
+                        selection-color: #111;
+                    }
+                    QHeaderView::section {
+                        background: #e0e0e0;
+                        color: #222;
+                        font-weight: bold;
+                        border: none;
+                        border-radius: 6px;
+                        padding: 6px;
+                    }
+                    QScrollBar:vertical {
+                        background: #f0f0f0;
+                        width: 10px;
+                        margin: 2px 2px 2px 2px;
+                        border-radius: 5px;
+                    }
+                    QScrollBar::handle:vertical {
+                        background: #b8c0cc;
+                        min-height: 30px;
+                        border-radius: 5px;
+                    }
+                    QScrollBar::handle:vertical:hover {
+                        background: #9da9b7;
+                    }
+                    QScrollBar::add-line:vertical,
+                    QScrollBar::sub-line:vertical {
+                        height: 0px;
+                        background: none;
+                    }
+                    QScrollBar:horizontal {
+                        background: #f0f0f0;
+                        height: 10px;
+                        margin: 2px 2px 2px 2px;
+                        border-radius: 5px;
+                    }
+                    QScrollBar::handle:horizontal {
+                        background: #b8c0cc;
+                        min-width: 30px;
+                        border-radius: 5px;
+                    }
+                    QScrollBar::handle:horizontal:hover {
+                        background: #9da9b7;
+                    }
+                    QScrollBar::add-line:horizontal,
+                    QScrollBar::sub-line:horizontal {
+                        width: 0px;
+                        background: none;
+                    }
+                """)
+        self.proportions = [
+            0.06,  # รหัสประจำตัว
+            0.04,  # เพศ
+            0.10,  # ชื่อ
+            0.10,  # สกุล
+            0.38,  # คดี
+            0.08,  # ชั้น
+            0.06,  # แดน
+            0.06,  # ประเภท
+            0.06,  # สถานะ
+            0.06,  # วินัย
+        ]
+        self.table_view = None
         self.load_prisoners()
 
     def load_prisoners(self):
@@ -112,14 +204,19 @@ class Prisoners_list(QWidget):
             return
 
         headers = ['รหัสประจำตัว', 'เพศ', 'ชื่อ', 'สกุล', 'คดี', 'ชั้น', 'แดน', 'ประเภท', 'สถานะ', 'วินัย']
-        # แปลง prisoners เป็น list of list (ถ้าเป็น tuple)
-        prisoners = [list(row) for row in prisoners]
-        # ถ้าข้อมูลแต่ละแถวมีไม่ครบ 10 ช่อง ให้เติม "" ให้ครบ
-        for row in prisoners:
-            while len(row) < len(headers):
-                row.append("")
-                print(row)
-        model = PrisonerTableModel(prisoners, headers)
-        self.table.setModel(model)
-        self.table.resizeColumnsToContents()
-        self.table.resizeRowsToContents()
+
+        self.table_model = PrisonersTableModel(prisoners, headers)
+        self.table_view = ResponsiveTableView(self.proportions)
+        self.table_view.setModel(self.table_model)
+        self.table_view.setAlternatingRowColors(True)
+        self.table_view.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
+        self.table_view.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
+        self.table_view.verticalHeader().setVisible(False)
+
+        header = self.table_view.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
+        header.setStretchLastSection(False)
+
+        self.layout().addWidget(self.table_view)
+
+        self.table_view.apply_column_widths()
