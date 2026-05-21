@@ -1,21 +1,23 @@
-from PyQt6.QtWidgets import QWidget, QLabel, QLineEdit, QPushButton, QVBoxLayout, QMessageBox, QGraphicsDropShadowEffect
+from PyQt6.QtWidgets import (
+   QWidget, 
+   QLabel, 
+   QLineEdit, 
+   QPushButton, 
+   QVBoxLayout,
+   QGraphicsDropShadowEffect
+)
 from PyQt6.QtGui import QColor
 from PyQt6.QtCore import Qt
-
-from dotenv import load_dotenv
 from ui.main_app import MAINWINDOW
-from utils.resource import Resource_Helper
-
-import sys
-import psycopg2
-import os
-import hashlib
-
-load_dotenv(Resource_Helper.resource_path('.env'))
+from db.db import POSTGRESQL
+from ui.alert_box import AlertBox
 
 class LOGIN(QWidget):
     def __init__(self):
         super().__init__()
+        self.db = POSTGRESQL()
+        self.db.create_tables_if_not_exist()
+
         self.setWindowTitle('Login')
         self.setGeometry(100, 100, 300, 150)
         self.center()
@@ -90,44 +92,19 @@ class LOGIN(QWidget):
         self.move(frameGm.topLeft())
 
     def handle_login(self):
-        self.main_window = MAINWINDOW()
-        self.main_window.show()
-        self.close()
+        # self.main_window = MAINWINDOW()
+        # self.main_window.show()
+        # self.close()
 
-        # username = self.input_user.text()
-        # password = self.input_password.text()
-        # if self.check_db_login(username, password):
-        #     # QMessageBox.information(self, "Success", "Login Success!")
-        #     self.close()
-        #     # เพิมโปรแกรมหลัก
-        #     self.main_window = MAINWINDOW()
-        #     self.main_window.show()
-        # else:
-        #     self.input_password.clear()
-        #     QMessageBox.warning(self, 'Failed', 'Login Failed!')
+        username = self.input_user.text()
+        password = self.input_password.text()
+        if self.db.check_db_login(username, password):
+            self.close()
+            # เพิมโปรแกรมหลัก
+            self.main_window = MAINWINDOW(user_role=username)
+            self.main_window.show()
+        else:
+            self.input_password.clear()
+            AlertBox.error(self, 'เข้าสู่ระบบ', 'เข้าสู่ระบบไม่สำเร็จ')
 
-
-    def check_db_login(self, username, password):
-        try:
-            conn = psycopg2.connect(
-                host=os.getenv("PG_HOST"),
-                port=os.getenv("PG_PORT"),
-                dbname=os.getenv("PG_NAME"),
-                user=os.getenv("PG_USER"),
-                password=os.getenv("PG_PASS")
-            )
-            with conn.cursor() as cur:
-                cur.execute("SELECT password FROM users WHERE username=%s", (username,))
-                row = cur.fetchone()
-                if row:
-                    db_password = row[0].tobytes()
-                    input_hash = hashlib.sha256(password.encode()).digest()
-                    # print(db_password, input_hash)
-                    return db_password == input_hash
-                else:
-                    return False
-        except Exception as e:
-            print(f'DB ERROR:{e}')
-        
-        return False
 

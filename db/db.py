@@ -1,14 +1,32 @@
-import psycopg2 ,os ,hashlib
+import psycopg2
+import os
+import hashlib
+import traceback
+import inspect
 from dotenv import load_dotenv
 
 load_dotenv(load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '.env')))
 
-print('SQLITE_DB',os.getenv("SQLITE_DB"))
-print('PG_HOST',os.getenv("PG_HOST"))
-print('PG_PORT',os.getenv("PG_PORT"))
-print('PG_NAME',os.getenv("PG_NAME"))
-print('PG_USER',os.getenv("PG_USER"))
-print('PG_PASS',os.getenv("PG_PASS"))
+# print('SQLITE_DB',os.getenv("SQLITE_DB"))
+# print('PG_HOST',os.getenv("PG_HOST"))
+# print('PG_PORT',os.getenv("PG_PORT"))
+# print('PG_NAME',os.getenv("PG_NAME"))
+# print('PG_USER',os.getenv("PG_USER"))
+# print('PG_PASS',os.getenv("PG_PASS"))
+
+def log_db_exceptions(func):
+    def wrapper(self, *args, **kwargs):
+        try:
+            return func(self, *args, **kwargs)
+        except Exception as e:
+            self.log_error(
+                function_name=f"{os.path.basename(__file__)}::{self.__class__.__name__}::{func.__name__}",
+                error_message=f"Error in {func.__name__}::: {e}",
+                extra_info=traceback.format_exc()
+            )
+            print(f"Error in {func.__name__}: {e}")
+            return False
+    return wrapper
 
 class POSTGRESQL():
     def __init__(self):
@@ -20,65 +38,209 @@ class POSTGRESQL():
             password=os.getenv("PG_PASS")
         )
         self.conn.autocommit = True
+        # self.create_tables_if_not_exist()
 
-    def get_user(self):
+    @log_db_exceptions
+    def create_tables_if_not_exist(self):
+        commands = [
+            """
+            CREATE TABLE IF NOT EXISTS public.prisoners_ (
+                prisoner_id bigint PRIMARY KEY,
+                sex text NOT NULL,
+                f_name text NOT NULL,
+                l_name text NOT NULL,
+                lawsuit text NOT NULL,
+                level text NOT NULL,
+                dan text NOT NULL,
+                type text,
+                status text,
+                disciplinary text,
+                "timestamp" timestamp DEFAULT CURRENT_TIMESTAMP
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS public.relatives (
+                relative_id bigint PRIMARY KEY,
+                title text NOT NULL,
+                f_name text NOT NULL,
+                l_name text NOT NULL,
+                address text NOT NULL,
+                tel text NOT NULL,
+                fingerprint bytea,
+                is_active boolean DEFAULT true,
+                "timestamp" timestamp DEFAULT CURRENT_TIMESTAMP
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS public.check_ (
+                id serial PRIMARY KEY,
+                key text
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS public.holidays (
+                id serial PRIMARY KEY,
+                date text NOT NULL UNIQUE,
+                name text NOT NULL
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS public.log_error (
+                log_id serial PRIMARY KEY,
+                time_stamp timestamp DEFAULT CURRENT_TIMESTAMP,
+                function_name text,
+                error_message text,
+                extra_info text
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS public.log_realtime (
+                id serial PRIMARY KEY,
+                "timestamp" timestamp DEFAULT CURRENT_TIMESTAMP,
+                prisoner_id bigint,
+                relative_id bigint,
+                result text,
+                detail text,
+                device text,
+                channel integer,
+                visit_date text,
+                time_visit text
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS public.users (
+                id serial PRIMARY KEY,
+                username text UNIQUE,
+                password bytea,
+                user_type text,
+                fullname text
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS public.relations (
+                id serial PRIMARY KEY,
+                prisoner_id bigint NOT NULL,
+                relative_id bigint NOT NULL,
+                relation text NOT NULL,
+                is_active boolean DEFAULT true,
+                "timestamp" timestamp DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT relations_prisoner_id_fkey FOREIGN KEY (prisoner_id) REFERENCES public.prisoners_(prisoner_id) ON DELETE RESTRICT,
+                CONSTRAINT relations_relative_id_fkey FOREIGN KEY (relative_id) REFERENCES public.relatives(relative_id) ON DELETE RESTRICT
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS public.visit_history (
+                id serial PRIMARY KEY,
+                "timestamp" timestamp DEFAULT CURRENT_TIMESTAMP,
+                visit_date text NOT NULL,
+                time_visit text NOT NULL,
+                prisoner_id bigint NOT NULL,
+                relative_id_1 bigint,
+                relative_id_2 bigint,
+                relative_id_3 bigint,
+                relative_id_4 bigint,
+                relative_id_5 bigint,
+                channel integer,
+                "desc" text,
+                CONSTRAINT visit_history_prisoner_id_fkey FOREIGN KEY (prisoner_id) REFERENCES public.prisoners_(prisoner_id) ON DELETE RESTRICT
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS public.visit_spacial (
+                visit_id serial PRIMARY KEY,
+                time_stamp timestamp DEFAULT CURRENT_TIMESTAMP,
+                date_visit text NOT NULL,
+                time_visit text NOT NULL,
+                prisoner_id bigint NOT NULL,
+                relative_id_1 bigint,
+                relative_id_2 bigint,
+                relative_id_3 bigint,
+                relative_id_4 bigint,
+                relative_id_5 bigint,
+                channel integer,
+                CONSTRAINT visit_spacial_prisoner_id_fkey FOREIGN KEY (prisoner_id) REFERENCES public.prisoners_(prisoner_id) ON DELETE RESTRICT
+            )
+            """,
+            """
+            CREATE TABLE IF NOT EXISTS public.visits (
+                visit_id serial PRIMARY KEY,
+                time_stamp timestamp DEFAULT CURRENT_TIMESTAMP,
+                date_visit text NOT NULL,
+                time_visit text NOT NULL,
+                prisoner_id bigint NOT NULL,
+                relative_id_1 bigint,
+                relative_id_2 bigint,
+                relative_id_3 bigint,
+                relative_id_4 bigint,
+                relative_id_5 bigint,
+                channel integer,
+                visit_status text DEFAULT 'pending',
+                CONSTRAINT visits_prisoner_id_fkey FOREIGN KEY (prisoner_id) REFERENCES public.prisoners_(prisoner_id) ON DELETE RESTRICT
+            )
+            """
+        ]
+        alter_commands = [
+            # ตัวอย่าง เพิ่ม column note ชนิด text
+            'ALTER TABLE IF EXISTS public.relations ADD COLUMN IF NOT EXISTS "user_insert" text',
+            'ALTER TABLE IF EXISTS public.relatives ADD COLUMN IF NOT EXISTS "user_insert" text'
+        ]
+        with self.conn.cursor() as cur:
+            for command in commands:
+                cur.execute(command)
+            for command in alter_commands:
+                cur.execute(command)
+        print("Tables created or already exist.")
+
+    @log_db_exceptions
+    def get_all_prisoners_list(self):
         '''
-        ดึงข้อมูล user password
+        ดึงข้อมูลผู้ต้องขังใน DB
         '''
         with self.conn.cursor() as cur:
-            cur.execute('SELECT * FROM users')
-            return cur.fetchall()
+            cur.execute('SELECT * FROM prisoners_')
+            rows = cur.fetchall()
+            return rows
 
-    def get_all_tables(self, schema='public'):
+    @log_db_exceptions
+    def insert_prisoner(self, prisoner_id, sex, f_name, l_name, lawsuit, level, dan, type_, status):
+        """
+        เพิ่มข้อมูลผู้ต้องขัง
+        """
+        with self.conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO prisoners_(
+                    prisoner_id, sex, f_name, l_name, lawsuit, level, dan, type, status
+                )VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """,(prisoner_id, sex, f_name, l_name, lawsuit, level, dan, type_, status)
+            )
+        return True
+
+    @log_db_exceptions
+    def check_db_login(self, username, password):
         '''
-        ดึงรายชื่อตารางทั้งหมดใน schema ที่ระบุ (ค่าเริ่มต้น: public)
+        ดึงข้อมูล username password
         '''
         with self.conn.cursor() as cur:
-            cur.execute("""
-                SELECT table_name
-                FROM information_schema.tables
-                WHERE table_schema = %s AND table_type = 'BASE TABLE'
-                ORDER BY table_name
-            """, (schema,))
-            return [row[0] for row in cur.fetchall()]
+            cur.execute("SELECT password FROM users WHERE username=%s", (username,))
+            row = cur.fetchone()
+            if row:
+                db_password = row[0].tobytes()
+                input_hash = hashlib.sha256(password.encode()).digest()
+                return db_password == input_hash
+            else:
+                return False
 
-    def get_table_schema(self, table_name, schema='public'):
-        '''
-        ดึงโครงสร้างตาราง (column name, type, nullable, default)
-        '''
-        with self.conn.cursor() as cur:
-            cur.execute("""
-                SELECT column_name, data_type, is_nullable, column_default
-                FROM information_schema.columns
-                WHERE table_name = %s AND table_schema = %s
-                ORDER BY ordinal_position
-            """, (table_name, schema))
-            return cur.fetchall()
+    def log_error(self, function_name, error_message, extra_info=None):
+        try:
+            with self.conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO log_error (function_name, error_message, extra_info)
+                    VALUES (%s, %s, %s)
+                    """,
+                    (function_name, str(error_message), extra_info)
+                )
+        except Exception as log_e:
+            print(f"Error logging to log_error: {log_e}")
 
-    def get_all_tables_schema(self, schema='public'):
-        '''
-        ดึงโครงสร้างของทุกตารางใน schema ที่ระบุ
-        '''
-        tables = self.get_all_tables(schema)
-        all_schema = {}
-        for table in tables:
-            all_schema[table] = self.get_table_schema(table, schema)
-        return all_schema
-
-if __name__ == "__main__":
-    db = POSTGRESQL()
-    all_schema = db.get_all_tables_schema()
-    for table, schema in all_schema.items():
-        print(f"Table: {table}")
-        for col in schema:
-            print(col)
-
-
-
-#     db = POSTGRESQL()
-#     users = db.get_user()
-#     for row in users:
-#         user_name = row[1]
-#         db_password_blob = row[2]
-#         password_str = db_password_blob.tobytes().decode('utf-8')
-#         print(f"{user_name}: {password_str}")

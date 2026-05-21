@@ -21,10 +21,15 @@ from PyQt6.QtGui import (
     QIntValidator,
     QRegularExpressionValidator
 )
+from db.db import POSTGRESQL
 
 class Prisoner_register_widget(QWidget):
     def __init__(self):
         super().__init__()
+
+        self.db = POSTGRESQL()
+
+        self.setObjectName("main_prisoner_widget")
         main_layout = QVBoxLayout()
         h_layout = QHBoxLayout()
         form = QFormLayout()
@@ -128,6 +133,12 @@ class Prisoner_register_widget(QWidget):
         self.btn_clear.clicked.connect(self.clear_data)
 
         self.setStyleSheet('''
+            #main_prisoner_widget {
+                background: #fff;
+                border: 1.5px solid #e0e0e0;
+                border-radius: 10px;
+                margin: 10px 10px 10px 1px;
+            }
             QWidget {
                 background: #fff;
                 color: #222;
@@ -240,4 +251,82 @@ class Prisoner_register_widget(QWidget):
         status = self.input_status.currentText().strip()
         
         if not all([id, gender, f_name, l_name, lawsuit, level, dan, p_type, status]):
-            QMessageBox.warning(self, 'กรอกข้อมูลไม่ครบ', 'กรุณากรอกข้อมูลให้ครบทุกช่อง')
+            msg = QMessageBox(self)
+            msg.setIcon(QMessageBox.Icon.Warning)
+            msg.setWindowTitle('กรอกข้อมูลไม่ครบ')
+            msg.setText('กรุณากรอกข้อมูลให้ครบทุกช่อง')
+            msg.setStyleSheet("""
+                QMessageBox {
+                    background-color: #f5f6fa;
+                    font-family: 'Sarabun', Arial, sans-serif;
+                    font-size: 16px;
+                }
+                QLabel {
+                    color: #333;
+                }
+                QPushButton {
+                    background-color: #5e81f4;
+                    color: #fff;
+                    border-radius: 6px;
+                    padding: 6px 18px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #4666c9;
+                }
+            """)
+            msg.exec()
+        result = self.db.insert_prisoner(id, gender, f_name, l_name, lawsuit, level, dan, p_type, status)
+        if result:
+            msg = QMessageBox(self)
+            msg.setIcon(QMessageBox.Icon.Information)
+            msg.setWindowTitle('บันทึกข้อมูล')
+            msg.setText(f'บันทึกข้อมูล {id} สำเร็จ')
+            msg.setStyleSheet("""
+                QMessageBox {
+                    background-color: #f5f6fa;
+                    font-family: 'Sarabun', Arial, sans-serif;
+                    font-size: 16px;
+                }
+                QLabel {
+                    color: #333;
+                }
+                QPushButton {
+                    background-color: #5e81f4;
+                    color: #fff;
+                    border-radius: 6px;
+                    padding: 6px 18px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #4666c9;
+                }
+            """)
+            msg.exec()
+            self.clear_data()
+        else:
+            msg = QMessageBox(self)
+            msg.setIcon(QMessageBox.Icon.Warning)
+            msg.setWindowTitle('บันทึกข้อมูล')
+            msg.setText(f'บันทึกข้อมูลไม่สำเร็จ')
+            msg.setStyleSheet("""
+                QMessageBox {
+                    background-color: #f5f6fa;
+                    font-family: 'Sarabun', Arial, sans-serif;
+                    font-size: 16px;
+                }
+                QLabel {
+                    color: #333;
+                }
+                QPushButton {
+                    background-color: #5e81f4;
+                    color: #fff;
+                    border-radius: 6px;
+                    padding: 6px 18px;
+                    font-weight: bold;
+                }
+                QPushButton:hover {
+                    background-color: #4666c9;
+                }
+            """)
+            msg.exec()

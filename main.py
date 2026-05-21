@@ -1,5 +1,4 @@
 import sys
-import os
 from user.login import LOGIN
 from utils.resource import Resource_Helper
 from PyQt6.QtWidgets import QApplication
@@ -7,7 +6,6 @@ from PyQt6.QtGui import (
     QFontDatabase, 
     QFont, 
     QIcon,
-    QGuiApplication
 )
 from PyQt6.QtCore import Qt
 
