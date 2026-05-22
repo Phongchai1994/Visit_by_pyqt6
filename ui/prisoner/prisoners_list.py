@@ -6,8 +6,13 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QSpacerItem,
     QSizePolicy,
-    QHeaderView
+    QHeaderView,
+    QGroupBox,
+    QCheckBox,
+    QGridLayout,
+    QLineEdit
 )
+
 from PyQt6.QtCore import Qt, QAbstractTableModel
 from PyQt6.QtGui import QBrush, QColor
 
@@ -87,7 +92,7 @@ class Prisoners_list(QWidget):
         main_layout = QVBoxLayout(self)
         main_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         main_layout.setContentsMargins(20, 12, 20, 12)
-
+     
         # หัวข้อ
         title_label = QLabel('รายชื่อผู้ต้องขัง')
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -195,20 +200,167 @@ class Prisoners_list(QWidget):
             0.06,  # วินัย
         ]
         self.table_view = None
+
+        self.filer_options = {
+            'เพศ': [],
+            'ชั้น': [],
+            'แดน': [],
+            'ประเภท': [],
+            'สถานะ': [],
+            'วินัย': []
+        }
+        self.search_text = ''
+        self.create_filter_ui(main_layout)
         self.load_prisoners()
+        self.apply_filters()
+
+    def create_filter_ui(self,layout):
+        filter_layout = QGridLayout()
+
+        # เพศ
+        gender_group = QGroupBox('เพศ')
+        self.gender_checkboxes = []
+        gender_male = QCheckBox('ชาย')
+        gender_female = QCheckBox('หญิง')
+        for cb in [gender_male, gender_female]:
+            cb.stateChanged.connect(self.apply_filters)
+            self.gender_checkboxes.append(cb)
+        gender_layout = QGridLayout()
+        gender_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        gender_layout.addWidget(gender_male, 0, 0)
+        gender_layout.addWidget(gender_female, 1, 0)
+        gender_group.setLayout(gender_layout)
+        filter_layout.addWidget(gender_group, 0, 0)
+
+        # ชั้น
+        level_group = QGroupBox('ชั้น')
+        levels = ['ระหว่างพิจารณาคดี', 'เยี่ยม', 'ดีมาก', 'ดี', 'กลาง', 'ปรับปรุง', 'ปรับปรุงมาก']
+        self.level_checkboxes = []
+        level_layout = QGridLayout()
+        level_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        for i, level in enumerate(levels):
+            cb = QCheckBox(level)
+            cb.stateChanged.connect(self.apply_filters)
+            self.level_checkboxes.append(cb)
+            level_layout.addWidget(cb, i // 2, i % 2)
+        level_group.setLayout(level_layout)
+        filter_layout.addWidget(level_group, 0, 1)
+
+        # แดน
+        dan_group = QGroupBox('แดน')
+        dan_names = ['รจช', "7", "6", "5", "4", "3", "2", "1"]
+        self.dan_checkboxes = []
+        dan_layout = QGridLayout()
+        dan_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        for i, dan in enumerate(dan_names):
+            cb = QCheckBox(dan)
+            cb.stateChanged.connect(self.apply_filters)
+            self.dan_checkboxes.append(cb)
+            dan_layout.addWidget(cb, i // 2, i % 2)
+        dan_group.setLayout(dan_layout)
+        filter_layout.addWidget(dan_group, 0, 2)
+        
+        # ประเภท
+        type_group = QGroupBox('ประเภท')
+        type_names =['ผู้ต้องขัง', 'ผู้ต้องกักขัง']
+        self.type_checkboxes = []
+        type_layout = QGridLayout()
+        type_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        for i, type_ in enumerate(type_names):
+            cb = QCheckBox(type_)
+            cb.stateChanged.connect(self.apply_filters)
+            self.type_checkboxes.append(cb)
+            type_layout.addWidget(cb, i // 2, i % 2)
+        type_group.setLayout(type_layout)
+        filter_layout.addWidget(type_group, 0, 3)
+
+        # สถานะ
+        status_group = QGroupBox('สถานะ')
+        status_names = ['อยู่', 'ไม่อยู่']
+        self.status_checkboxes = []
+        status_layout = QGridLayout()
+        status_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        for i, status in enumerate(status_names):
+            cb = QCheckBox(status)
+            if status == 'อยู่':
+                cb.setChecked(True)
+            cb.stateChanged.connect(self.apply_filters)
+            self.status_checkboxes.append(cb)
+            status_layout.addWidget(cb, i // 2, i % 2)
+        status_group.setLayout(status_layout)
+        filter_layout.addWidget(status_group, 0, 4)
+
+        # วินัย
+        disciplinary_group = QGroupBox('วินัย')
+        self.disciplinary_checkbox = []
+        disciplinary_layout = QGridLayout()
+        disciplinary_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        cb_disciplinary = QCheckBox('ผิดวินัย')
+        cb_disciplinary.stateChanged.connect(self.apply_filters)
+        self.disciplinary_checkbox.append(cb_disciplinary)
+        disciplinary_layout.addWidget(cb_disciplinary, 0, 0)
+        disciplinary_group.setLayout(disciplinary_layout)
+        filter_layout.addWidget(disciplinary_group, 0, 5)
+
+
+        # ช่องค้นหา
+        search_group = QGroupBox('ค้นหาและแสดงผล')
+        self.search_box = QLineEdit()
+        self.search_box.setPlaceholderText('ค้นหาด้วยชื่อหรือสกุล...')
+        self.search_box.textChanged.connect(self.apply_filters)
+        search_layout = QGridLayout()
+        search_layout.addWidget(self.search_box, 0, 0)
+        search_group.setLayout(search_layout)
+        filter_layout.addWidget(search_group, 0, 6)
+        
+        layout.addLayout(filter_layout)
+
+    def apply_filters(self):
+        # ดึงค่าจาก checkbox และ search box
+        search_text = self.search_box.text().strip().lower()
+        genders = [cb.text() for cb in self.gender_checkboxes if cb.isChecked()]
+        levels = [cb.text() for cb in self.level_checkboxes if cb.isChecked()]
+        dans = [cb.text() for cb in self.dan_checkboxes if cb.isChecked()]
+        types = [cb.text() for cb in self.type_checkboxes if cb.isChecked()]
+        status = [cb.text() for cb in self.status_checkboxes if cb.isChecked()]
+        disciplinary = [cb.text() for cb in self.disciplinary_checkbox if cb.isChecked()]
+        filtered = []
+        for row in self.all_prisoners:
+            # row: [รหัส, เพศ, ชื่อ, สกุล, ...]
+            if search_text and (search_text not in row[2].lower() and search_text not in row[3].lower()):
+                continue
+            if genders and row[1] not in genders:
+                continue
+            if levels and row[5] not in levels:
+                continue
+            if dans and row[6] not in dans:
+                continue
+            if types and row[7] not in types:
+                continue
+            if status and row[8] not in status:
+                continue
+            if disciplinary and row[9] not in disciplinary:
+                continue
+            # เพิ่มเงื่อนไง
+            filtered.append(row)
+
+        self.table_model._data = filtered
+        self.table_model.layoutChanged.emit()
+        self.table_view.apply_column_widths()
 
     def load_prisoners(self):
         prisoners = self.db.get_all_prisoners_list()
         if not prisoners:
             AlertBox.error(self, 'load prisoner', 'ดึงข้อมูลผู้ต้องขังไม่สำเร็จ')
             return
-
+        self.all_prisoners = prisoners # เก็บข้อมูลไว้
         headers = ['รหัสประจำตัว', 'เพศ', 'ชื่อ', 'สกุล', 'คดี', 'ชั้น', 'แดน', 'ประเภท', 'สถานะ', 'วินัย']
 
         self.table_model = PrisonersTableModel(prisoners, headers)
         self.table_view = ResponsiveTableView(self.proportions)
         self.table_view.setModel(self.table_model)
         self.table_view.setAlternatingRowColors(True)
+        self.table_view.setSelectionMode(QTableView.SelectionMode.SingleSelection)
         self.table_view.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
         self.table_view.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
         self.table_view.verticalHeader().setVisible(False)
