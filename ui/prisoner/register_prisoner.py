@@ -215,6 +215,52 @@ class Prisoner_register_widget(QWidget):
                 selection-color: #fff;
                 font-size: 14px;
             }
+            QLineEdit, QComboBox, QTextEdit {
+                background: #f5f6fa;
+                border: 1px solid #e0e0e0;
+                border-radius: 6px;
+                padding: 6px;
+                color: #222;
+                font-size: 14px;
+            }
+            QLineEdit:focus, QComboBox:focus, QTextEdit:focus {
+                border: 1.5px solid #5e81f4;
+                background: #fff;
+            }
+            QTextEdit {
+                background: #f5f6fa;
+                border: 1px solid #e0e0e0;
+                border-radius: 6px;
+                padding: 6px;
+                color: #222;
+                font-size: 14px;
+            }
+            QTextEdit:focus {
+                border: 1.5px solid #5e81f4;
+                background: #fff;
+            }
+            /* ตกแต่ง scrollbar ของ QTextEdit */
+            QTextEdit QScrollBar:vertical {
+                background: #e0e0e0;
+                width: 12px;
+                margin: 2px 0 2px 0;
+                border-radius: 6px;
+            }
+            QTextEdit QScrollBar::handle:vertical {
+                background: #b0bec5;
+                min-height: 20px;
+                border-radius: 6px;
+            }
+            QTextEdit QScrollBar::handle:vertical:hover {
+                background: #5e81f4;
+            }
+            QTextEdit QScrollBar::add-line:vertical, QTextEdit QScrollBar::sub-line:vertical {
+                background: none;
+                height: 0px;
+            }
+            QTextEdit QScrollBar::add-page:vertical, QTextEdit QScrollBar::sub-page:vertical {
+                background: none;
+            }
         ''')
 
     def update_dan_options(self):

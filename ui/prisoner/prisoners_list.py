@@ -186,6 +186,42 @@ class Prisoners_list(QWidget):
                         width: 0px;
                         background: none;
                     }
+                    QLineEdit {
+                        background: #f5f6fa;
+                        border: 1px solid #e0e0e0;
+                        border-radius: 6px;
+                        padding: 6px;
+                        color: #222;
+                    }
+                    QLineEdit:focus {
+                        border: 1.5px solid #5e81f4;
+                        background: #fff;
+                    }    
+                    QCheckBox {
+                        spacing: 8px;
+                        font-size: 14px;
+                        color: #222;
+                        padding: 2px 0 2px 4px;
+                    }
+                    QCheckBox::indicator {
+                        width: 18px;
+                        height: 18px;
+                        border-radius: 4px;
+                        border: 1.5px solid #5e81f4;
+                        background: #fff;
+                    }
+                    QCheckBox::indicator:checked {
+                        background: #5e81f4;
+                        border: 1.5px solid #4666c9;
+                    }
+                    QCheckBox::indicator:unchecked {
+                        background: #fff;
+                        border: 1.5px solid #b0b0b0;
+                    }
+                    QCheckBox::indicator:disabled {
+                        background: #e0e0e0;
+                        border: 1.5px solid #b0b0b0;
+                    }
                 """)
         self.proportions = [
             0.06,  # รหัสประจำตัว
@@ -364,6 +400,7 @@ class Prisoners_list(QWidget):
         self.table_view.setSelectionBehavior(QTableView.SelectionBehavior.SelectRows)
         self.table_view.setEditTriggers(QTableView.EditTrigger.NoEditTriggers)
         self.table_view.verticalHeader().setVisible(False)
+        self.table_view.setAlternatingRowColors(True)
 
         header = self.table_view.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)

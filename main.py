@@ -6,12 +6,34 @@ from PyQt6.QtGui import (
     QFontDatabase, 
     QFont, 
     QIcon,
+    QPalette,
+    QColor
 )
 from PyQt6.QtCore import Qt
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
+    app.setStyle("Windows")
+    palette = QPalette()
+    palette.setColor(QPalette.ColorRole.Window, QColor(240, 240, 240))
+    palette.setColor(QPalette.ColorRole.WindowText, QColor(0, 0, 0))
+    app.setPalette(palette)
+
     app.setHighDpiScaleFactorRoundingPolicy(Qt.HighDpiScaleFactorRoundingPolicy.PassThrough)
+    app.setStyleSheet("""
+    QTableView {
+        background-color: #ffffff;
+        alternate-background-color: #e3f2fd; /* สีฟ้าอ่อน */
+    }
+    QTableView::indicator:checked {
+        background-color: #1976d2; /* สี checkbox ที่ติ๊ก */
+        border: 1px solid #1976d2;
+    }
+    QTableView::indicator:unchecked {
+        background-color: #ffffff;
+        border: 1px solid #1976d2;
+    }
+    """)
     font_path = Resource_Helper.resource_path('etc/font/Sarabun/Sarabun-Regular.ttf')
     font_id = QFontDatabase.addApplicationFont(font_path)
     if font_id != -1:
