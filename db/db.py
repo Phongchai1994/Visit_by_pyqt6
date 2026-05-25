@@ -231,6 +231,26 @@ class POSTGRESQL():
             else:
                 return False
 
+    @log_db_exceptions
+    def get_relatives(self, prisoner_id):
+        '''
+        ดึงข้อมูลญาติ จาก id ผู้ต้องขัง
+        '''
+        with self.conn.cursor() as cur:
+            cur.execute(
+                '''
+                SELECT rel.relative_id, rel.title, rel.f_name, rel.l_name, rel.tel, r.relation
+                FROM relatives rel
+                JOIN relations r ON rel.relative_id = r.relative_id
+                WHERE r.prisoner_id = %s AND rel.is_active = TRUE
+                ''',
+                (prisoner_id,)
+            )
+            return cur.fetchall()
+
+
+
+
     def log_error(self, function_name, error_message, extra_info=None):
         try:
             with self.conn.cursor() as cur:
@@ -244,3 +264,10 @@ class POSTGRESQL():
         except Exception as log_e:
             print(f"Error logging to log_error: {log_e}")
 
+if __name__ == "__main__":
+    db = POSTGRESQL()
+    result = db.get_relatives(1)
+    print(result)
+    # for rel in result:
+    #     print('คนที่')
+    #     print(rel)

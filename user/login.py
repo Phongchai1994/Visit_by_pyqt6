@@ -6,8 +6,8 @@ from PyQt6.QtWidgets import (
    QVBoxLayout,
    QGraphicsDropShadowEffect
 )
-from PyQt6.QtGui import QColor
-from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QColor, QRegularExpressionValidator
+from PyQt6.QtCore import Qt, QRegularExpression
 from ui.main_app import MAINWINDOW
 from db.db import POSTGRESQL
 from ui.alert_box import AlertBox
@@ -24,8 +24,12 @@ class LOGIN(QWidget):
         self.center()
         layout = QVBoxLayout()
 
+        regex = QRegularExpression("^[a-zA-Z_]*$")
+        validator = QRegularExpressionValidator(regex)
         self.label_user = QLabel('Username')
         self.input_user = QLineEdit()
+        self.input_user.setValidator(validator)
+
         self.label_password = QLabel('Password')
         self.input_password = QLineEdit()
         self.input_password.setEchoMode(QLineEdit.EchoMode.Password)

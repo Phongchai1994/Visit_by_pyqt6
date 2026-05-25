@@ -10,11 +10,15 @@ from PyQt6.QtWidgets import (
     QGroupBox,
     QCheckBox,
     QGridLayout,
-    QLineEdit
+    QLineEdit,
+    QMenu,
+    QDialog,
+    QFormLayout,
+    QPushButton
 )
 
 from PyQt6.QtCore import Qt, QAbstractTableModel
-from PyQt6.QtGui import QBrush, QColor
+from PyQt6.QtGui import QBrush, QColor ,QAction
 
 from db.db import POSTGRESQL
 from ui.alert_box import AlertBox
@@ -82,13 +86,116 @@ class ResponsiveTableView(QTableView):
         super().resizeEvent(event)
         self.apply_column_widths()
 
+class Prisoner_list_popup(QDialog):
+    def __init__(self, parent=None,):
+        super().__init__(parent)
+        self.setModal(True)
+        self.setMinimumWidth(420)
+        self.db = POSTGRESQL()
+
+    def show_detail(self, prisoner, title):
+        try:
+            data_relatives = self.db.get_relatives(prisoner_id=prisoner[0])
+        except Exception as e:
+            print("get_relatives error:", e)
+            data_relatives = []
+        self.setWindowTitle(title)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 18, 24, 18)
+        layout.setSpacing(12)
+
+        # หัวข้อใหญ่
+        header = QLabel('รายละเอียดผู้ต้องขัง')
+        header.setStyleSheet("font-size: 20px; font-weight: bold; color: #1a237e; margin-bottom: 8px;")
+        layout.addWidget(header, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        # เส้นคั่น
+        line = QLabel()
+        line.setFixedHeight(2)
+        line.setStyleSheet("background: #b0bec5; margin-bottom: 8px;")
+        layout.addWidget(line)
+
+        form = QFormLayout()
+        form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+        form.setFormAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        form.setHorizontalSpacing(18)
+        form.setVerticalSpacing(8)
+
+
+        headers = ['รหัสประจำตัว', 'เพศ', 'ชื่อ', 'สกุล', 'คดี', 'ชั้น', 'แดน', 'ประเภท', 'สถานะ', 'วินัย', 'วันบันทึกข้อมูล']
+        for i, label in enumerate(headers):
+            value = ''
+            if prisoner and i < len(prisoner) and prisoner[i] is not None:
+                value = str(prisoner[i])
+            lbl_key = QLabel(label + " :")
+            lbl_key.setStyleSheet("color: #37474f; font-weight: bold;")
+            lbl_val = QLabel(value)
+            lbl_val.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            lbl_val.setStyleSheet("color: #263238;")
+            form.addRow(lbl_key, lbl_val)
+
+        rel_header = QLabel('ข้อมูลญาติ')
+        rel_header.setStyleSheet('font-size: 16px; font-weight: bold; color: #1565c0; margin-top: 12px;')
+        form.addRow(rel_header, QLabel(''))
+        
+        if data_relatives:
+            for idx, rel in enumerate(data_relatives, 1):
+                try:
+                    rel_text = f"{idx}. {rel[1]} {rel[2]} {rel[3]} โทร {rel[4]}\n ความสัมพันธ์ : {rel[5]}"
+                except Exception as e:
+                    rel_text = f"ข้อมูลผิดปกติ: {rel} ({e})"
+                lbl_rel = QLabel(rel_text)
+                lbl_rel.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+                lbl_rel.setStyleSheet("color: #37474f; margin-bottom: 2px;")
+                form.addRow(QLabel(''), lbl_rel)
+        else:
+            lbl_none = QLabel("ไม่มีข้อมูลญาติ")
+            lbl_none.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            lbl_none.setStyleSheet("color: #b71c1c;")
+            form.addRow(QLabel(""), lbl_none)
+
+        layout.addLayout(form)
+
+        btn_close = QPushButton('ปิด')
+        btn_close.setStyleSheet("""
+            QPushButton {
+                background-color: #1976d2;
+                color: #fff;
+                border-radius: 6px;
+                padding: 8px 24px;
+                font-size: 15px;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: #0d47a1;
+            }
+        """)
+        btn_close.clicked.connect(self.accept)
+        layout.addWidget(btn_close, alignment=Qt.AlignmentFlag.AlignRight)
+
+    def add_reltive(self, prisoner, title):
+        self.setWindowTitle(title)
+        layout = QVBoxLayout(self)
+        form = QFormLayout()
+        data = self.db.get_relatives(prisoner_id=prisoner[0])
+        if not data:
+            form.addRow(QLabel('ไม่มีข้อมูลญาติ'), QLabel(''))
+        else:
+            for rel in data:
+                name = f'{rel[1]} {rel[2]} {rel[3]}'
+                info = f'{rel[4]} - {rel[5]}'
+                form.addRow(QLabel(name), QLabel(info))
+        layout.addLayout(form)
+        btn_close = QPushButton('ปิด')
+        btn_close.clicked.connect(self.accept)
+        layout.addWidget(btn_close, alignment=Qt.AlignmentFlag.AlignRight)
+
 class Prisoners_list(QWidget):
     def __init__(self):
         super().__init__()
         self.db = POSTGRESQL()
 
         self.setObjectName('main_prisoner_list_widget')
-
         main_layout = QVBoxLayout(self)
         main_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         main_layout.setContentsMargins(20, 12, 20, 12)
@@ -129,6 +236,8 @@ class Prisoners_list(QWidget):
                     QLabel {
                         color: #333;
                         font-weight: bold;
+                        font-family: 'Sarabun', Arial, sans-serif;
+                           
                     }
                     QTableView {
                         background: #f5f6fa;
@@ -346,6 +455,11 @@ class Prisoners_list(QWidget):
         self.search_box.textChanged.connect(self.apply_filters)
         search_layout = QGridLayout()
         search_layout.addWidget(self.search_box, 0, 0)
+
+        self.result_count_label = QLabel()
+        self.result_count_label.setText("จำนวนทั้งหมด : 0 ราย")
+        search_layout.addWidget(self.result_count_label, 1, 0, 1, 1, Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom )
+
         search_group.setLayout(search_layout)
         filter_layout.addWidget(search_group, 0, 6)
         
@@ -379,7 +493,7 @@ class Prisoners_list(QWidget):
                 continue
             # เพิ่มเงื่อนไง
             filtered.append(row)
-
+        self.result_count_label.setText(f'จำนวนทั้งหมด : {len(filtered)} ราย')
         self.table_model._data = filtered
         self.table_model.layoutChanged.emit()
         self.table_view.apply_column_widths()
@@ -406,6 +520,106 @@ class Prisoners_list(QWidget):
         header.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
         header.setStretchLastSection(False)
 
-        self.layout().addWidget(self.table_view)
 
+        self.table_view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.table_view.customContextMenuRequested.connect(self.create_table_context_menu)
+
+        self.layout().addWidget(self.table_view)
         self.table_view.apply_column_widths()
+
+    def create_table_context_menu(self, position):
+        index = self.table_view.indexAt(position)
+        if not index.isValid():
+            return
+        menu = QMenu()
+
+        # ดึงชื่อ - สกุลจากตาราง
+        row_data = self.table_model._data[index.row()]
+        prisoner_name = f'{row_data[2]} {row_data[3]}'
+
+        # เพิ่มเมนู
+        name_action = QAction(prisoner_name, self)
+        name_action.setEnabled(False)
+        menu.addAction(name_action)
+        menu.addSeparator()
+
+        action_detail = QAction('ดูรายละเอียด', self)
+        action_add_relative = QAction('เพิ่มญาติ', self)
+        action_del_relative = QAction('ลบญาติ', self)
+        action_edit_prisoner = QAction('แก้ไขข้อมูลผู้ต้องขัง', self)
+
+        action_detail.triggered.connect(lambda: self.show_detail(index.row()))
+        action_add_relative.triggered.connect(lambda: self.add_relative(index.row()))
+        action_del_relative.triggered.connect(lambda:print('ลบญาติ'))
+        action_edit_prisoner.triggered.connect(lambda:print('แก้ไขข้อมูลผู้ต้องขัง'))
+        
+        menu.addAction(action_detail)
+        menu.addSeparator()  # เส้นคั่น
+        menu.addAction(action_add_relative)
+        menu.addAction(action_del_relative)
+        menu.addSeparator()  # เส้นคั่น
+        menu.addAction(action_edit_prisoner)
+
+        # ปรับสไตล์เมนู (ตัวอย่าง)
+        menu.setStyleSheet("""
+            QMenu {
+                font-family: 'Sarabun', Arial, sans-serif;
+                font-size: 14px;
+                background: #FFFFFF;
+                border: 1.5px solid #000000;
+            }
+            QMenu::item {
+                padding: 6px 24px 6px 24px;
+                color: #0c5b9c
+            }
+            QMenu::item:selected {
+                background-color: #d9e8ff;
+                color: #12344f;
+            }
+            QMenu::separator {
+                height: 1px;
+                background: #b0b0b0;
+                margin: 4px 0 4px 0;
+            }
+        """)
+        
+        menu.exec(self.table_view.viewport().mapToGlobal(position))
+
+    def show_detail(self, row):
+        # ตัวอย่าง: แสดงข้อมูลแถวที่เลือก
+        data = self.table_model._data[row]
+        # คุณสามารถแสดง popup หรือ dialog ตามต้องการ
+
+        dialog = Prisoner_list_popup(self)
+        dialog.show_detail(data, title='รายละเอียด')
+        dialog.exec()
+
+
+
+    def add_relative(self, row):
+        data = self.table_model._data[row]
+        dialog = Prisoner_list_popup(self)
+        dialog.add_reltive(data, title='เพิ่มข้อมูลญาติ')
+        dialog.exec()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
