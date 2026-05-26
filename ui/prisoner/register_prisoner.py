@@ -22,6 +22,8 @@ from PyQt6.QtGui import (
     QRegularExpressionValidator
 )
 from db.db import POSTGRESQL
+from ui.alert_box import AlertBox
+
 
 class Prisoner_register_widget(QWidget):
     def __init__(self):
@@ -29,7 +31,7 @@ class Prisoner_register_widget(QWidget):
 
         self.db = POSTGRESQL()
 
-        self.setObjectName("main_prisoner_widget")
+        self.setObjectName("prisoner_register_widget")
         main_layout = QVBoxLayout()
         h_layout = QHBoxLayout()
         form = QFormLayout()
@@ -39,14 +41,8 @@ class Prisoner_register_widget(QWidget):
         form.setFormAlignment(Qt.AlignmentFlag.AlignCenter)
 
         register_label = QLabel('ลงทะเบียนผู้ต้องขัง')
+        register_label.setObjectName('register_label')
         register_label.setAlignment(Qt.AlignmentFlag.AlignHCenter)
-        register_label.setStyleSheet('''
-                                     font-size: 22px;
-                                     font-weight: bold;
-                                     color: #000000;
-                                     margin-bottom: 1px;
-                                     margin-top: 10px;
-        ''')
 
         # สร้าง input
         self.input_id = QLineEdit()
@@ -132,136 +128,6 @@ class Prisoner_register_widget(QWidget):
         self.btn_submit.clicked.connect(self.save_data)
         self.btn_clear.clicked.connect(self.clear_data)
 
-        self.setStyleSheet('''
-            #main_prisoner_widget {
-                background: #fff;
-                border: 1.5px solid #e0e0e0;
-                border-radius: 10px;
-                margin: 10px 10px 10px 1px;
-            }
-            QWidget {
-                background: #fff;
-                color: #222;
-                font-family: 'Sarabun', Arial, sans-serif;
-                font-size: 14px;
-            }
-            QLabel {
-                color: #333;
-                font-weight: bold;
-            }
-            QLineEdit, QComboBox {
-                background: #f5f6fa;
-                border: 1px solid #e0e0e0;
-                border-radius: 6px;
-                padding: 6px;
-                color: #222;
-            }
-            QLineEdit:focus, QComboBox:focus {
-                border: 1.5px solid #5e81f4;
-                background: #fff;
-            }
-            QPushButton#btn_submit {
-                background-color: #5e81f4;
-                color: #fff;
-                border: none;
-                border-radius: 6px;
-                padding: 8px 0;
-                font-weight: bold;
-            }            
-            QPushButton#btn_clear {
-                background-color: #e0e0e0;
-                color: #333;  /* สีเทาเข้มหรือดำ อ่านง่ายบนพื้นเทา */
-                border: none;
-                border-radius: 6px;
-                padding: 8px 0;
-                font-weight: bold;
-            }
-            QPushButton#btn_submit:hover {
-                background-color: #4666c9;
-            }
-            QPushButton#btn_clear:hover {
-                background-color: #b0bec5;
-            }
-            QComboBox {
-                    background: #f5f6fa;
-                    border: 1.5px solid #e0e0e0;
-                    border-radius: 6px;
-                    padding: 6px 30px 6px 10px;
-                    color: #222;
-                    font-size: 14px;
-            }
-            QComboBox:focus {
-                border: 1.5px solid #5e81f4;
-                background: #fff;
-            }
-            QComboBox::drop-down {
-                subcontrol-origin: padding;
-                subcontrol-position: top right;
-                width: 24px;
-                border-left: 1px solid #e0e0e0;
-                background: #e0e0e0;
-                border-top-right-radius: 6px;
-                border-bottom-right-radius: 6px;
-            }
-            QComboBox::down-arrow {
-                image: url(:/qt-project.org/styles/commonstyle/images/arrowdown-16.png);
-                width: 16px;
-                height: 16px;
-            }
-            QComboBox QAbstractItemView {
-                background: #fff;
-                border: 1px solid #e0e0e0;
-                selection-background-color: #5e81f4;
-                selection-color: #fff;
-                font-size: 14px;
-            }
-            QLineEdit, QComboBox, QTextEdit {
-                background: #f5f6fa;
-                border: 1px solid #e0e0e0;
-                border-radius: 6px;
-                padding: 6px;
-                color: #222;
-                font-size: 14px;
-            }
-            QLineEdit:focus, QComboBox:focus, QTextEdit:focus {
-                border: 1.5px solid #5e81f4;
-                background: #fff;
-            }
-            QTextEdit {
-                background: #f5f6fa;
-                border: 1px solid #e0e0e0;
-                border-radius: 6px;
-                padding: 6px;
-                color: #222;
-                font-size: 14px;
-            }
-            QTextEdit:focus {
-                border: 1.5px solid #5e81f4;
-                background: #fff;
-            }
-            /* ตกแต่ง scrollbar ของ QTextEdit */
-            QTextEdit QScrollBar:vertical {
-                background: #e0e0e0;
-                width: 12px;
-                margin: 2px 0 2px 0;
-                border-radius: 6px;
-            }
-            QTextEdit QScrollBar::handle:vertical {
-                background: #b0bec5;
-                min-height: 20px;
-                border-radius: 6px;
-            }
-            QTextEdit QScrollBar::handle:vertical:hover {
-                background: #5e81f4;
-            }
-            QTextEdit QScrollBar::add-line:vertical, QTextEdit QScrollBar::sub-line:vertical {
-                background: none;
-                height: 0px;
-            }
-            QTextEdit QScrollBar::add-page:vertical, QTextEdit QScrollBar::sub-page:vertical {
-                background: none;
-            }
-        ''')
 
     def update_dan_options(self):
         gender = self.input_gender.currentText()
@@ -273,7 +139,6 @@ class Prisoner_register_widget(QWidget):
             self.input_dan.addItems(['รจช','7','6','5','4','3','2'])
             self.input_dan.setCurrentText('7')
 
-        
     def clear_data(self):
         self.input_id.clear()
         self.input_gender.setCurrentIndex(0)
@@ -297,82 +162,10 @@ class Prisoner_register_widget(QWidget):
         status = self.input_status.currentText().strip()
         
         if not all([id, gender, f_name, l_name, lawsuit, level, dan, p_type, status]):
-            msg = QMessageBox(self)
-            msg.setIcon(QMessageBox.Icon.Warning)
-            msg.setWindowTitle('กรอกข้อมูลไม่ครบ')
-            msg.setText('กรุณากรอกข้อมูลให้ครบทุกช่อง')
-            msg.setStyleSheet("""
-                QMessageBox {
-                    background-color: #f5f6fa;
-                    font-family: 'Sarabun', Arial, sans-serif;
-                    font-size: 16px;
-                }
-                QLabel {
-                    color: #333;
-                }
-                QPushButton {
-                    background-color: #5e81f4;
-                    color: #fff;
-                    border-radius: 6px;
-                    padding: 6px 18px;
-                    font-weight: bold;
-                }
-                QPushButton:hover {
-                    background-color: #4666c9;
-                }
-            """)
-            msg.exec()
+            AlertBox.warning(self, 'กรอกข้อมูลไม่ครบ', 'กรุณากรอกข้อมูลให้ครบทุกช่อง')
         result = self.db.insert_prisoner(id, gender, f_name, l_name, lawsuit, level, dan, p_type, status)
         if result:
-            msg = QMessageBox(self)
-            msg.setIcon(QMessageBox.Icon.Information)
-            msg.setWindowTitle('บันทึกข้อมูล')
-            msg.setText(f'บันทึกข้อมูล {id} สำเร็จ')
-            msg.setStyleSheet("""
-                QMessageBox {
-                    background-color: #f5f6fa;
-                    font-family: 'Sarabun', Arial, sans-serif;
-                    font-size: 16px;
-                }
-                QLabel {
-                    color: #333;
-                }
-                QPushButton {
-                    background-color: #5e81f4;
-                    color: #fff;
-                    border-radius: 6px;
-                    padding: 6px 18px;
-                    font-weight: bold;
-                }
-                QPushButton:hover {
-                    background-color: #4666c9;
-                }
-            """)
-            msg.exec()
+            AlertBox.info(self, 'บันทึกข้อมูล', f'บันทึกข้อมูล {id} สำเร็จ')
             self.clear_data()
         else:
-            msg = QMessageBox(self)
-            msg.setIcon(QMessageBox.Icon.Warning)
-            msg.setWindowTitle('บันทึกข้อมูล')
-            msg.setText(f'บันทึกข้อมูลไม่สำเร็จ')
-            msg.setStyleSheet("""
-                QMessageBox {
-                    background-color: #f5f6fa;
-                    font-family: 'Sarabun', Arial, sans-serif;
-                    font-size: 16px;
-                }
-                QLabel {
-                    color: #333;
-                }
-                QPushButton {
-                    background-color: #5e81f4;
-                    color: #fff;
-                    border-radius: 6px;
-                    padding: 6px 18px;
-                    font-weight: bold;
-                }
-                QPushButton:hover {
-                    background-color: #4666c9;
-                }
-            """)
-            msg.exec()
+            AlertBox.warning(self, 'บันทึกข้อมูล', 'บันทึกข้อมูลไม่สำเร็จ')

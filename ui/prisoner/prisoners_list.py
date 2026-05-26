@@ -14,7 +14,9 @@ from PyQt6.QtWidgets import (
     QMenu,
     QDialog,
     QFormLayout,
-    QPushButton
+    QPushButton,
+    QComboBox, 
+    QTextEdit
 )
 
 from PyQt6.QtCore import Qt, QAbstractTableModel, QEvent
@@ -22,6 +24,7 @@ from PyQt6.QtGui import QBrush, QColor ,QAction
 
 from db.db import POSTGRESQL
 from ui.alert_box import AlertBox
+from devices.card_reader import ThaiIDReader
 
 from datetime import datetime
 
@@ -71,6 +74,7 @@ class ResponsiveTableView(QTableView):
     def __init__(self, proportions, parent=None):
         super().__init__(parent)
         self.proportions = proportions
+        self.setObjectName('Qtable_View')
 
     def apply_column_widths(self):
         model = self.model()
@@ -94,6 +98,7 @@ class Prisoner_list_popup(QDialog):
         self.setModal(True)
         self.setMinimumWidth(420)
         self.db = POSTGRESQL()
+        self.setObjectName('prisoner_list_popup')
 
     def show_detail(self, prisoner, title):
         try:
@@ -108,13 +113,20 @@ class Prisoner_list_popup(QDialog):
 
         # หัวข้อใหญ่
         header = QLabel('รายละเอียดผู้ต้องขัง')
-        header.setStyleSheet("font-size: 20px; font-weight: bold; color: #1a237e; margin-bottom: 8px;")
+        header.setObjectName('Qlabel_header')
+        # header.setStyleSheet('''
+                # font-size: 20px; 
+                # font-weight: bold; 
+                # color: #1a237e; 
+                # margin-bottom: 8px;
+        # ''')
         layout.addWidget(header, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # เส้นคั่น
         line = QLabel()
         line.setFixedHeight(2)
-        line.setStyleSheet("background: #b0bec5; margin-bottom: 8px;")
+        line.setObjectName('Qlabel_line')
+        # line.setStyleSheet("background: #b0bec5; margin-bottom: 8px;")
         layout.addWidget(line)
 
         form = QFormLayout()
@@ -145,14 +157,17 @@ class Prisoner_list_popup(QDialog):
                     except Exception as e:
                         pass  # ถ้าแปลงไม่ได้ ให้แสดงค่าดิบ
             lbl_key = QLabel(label + " :")
-            lbl_key.setStyleSheet("color: #37474f; font-weight: bold;")
+            lbl_key.setObjectName('Qlabel_lbl_key')
+            # lbl_key.setStyleSheet("color: #37474f; font-weight: bold;")
             lbl_val = QLabel(value)
+            lbl_val.setObjectName('Qlabel_lbl_val')
             lbl_val.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-            lbl_val.setStyleSheet("color: #263238;")
+            # lbl_val.setStyleSheet("color: #263238;")
             form.addRow(lbl_key, lbl_val)
 
         rel_header = QLabel('ข้อมูลญาติ')
-        rel_header.setStyleSheet('font-size: 16px; font-weight: bold; color: #1565c0; margin-top: 12px;')
+        rel_header.setObjectName('Qlabel_rel_header')
+        # rel_header.setStyleSheet('font-size: 16px; font-weight: bold; color: #1565c0; margin-top: 12px;')
         form.addRow(rel_header, QLabel(''))
         
         if data_relatives:
@@ -163,30 +178,21 @@ class Prisoner_list_popup(QDialog):
                     rel_text = f"ข้อมูลผิดปกติ: {rel} ({e})"
                 lbl_rel = QLabel(rel_text)
                 lbl_rel.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-                lbl_rel.setStyleSheet("color: #37474f; margin-bottom: 2px;")
+                lbl_rel.setObjectName('Qlabel_lbl_rel')
+                # lbl_rel.setStyleSheet("color: #37474f; margin-bottom: 2px;")
                 form.addRow(QLabel(''), lbl_rel)
         else:
             lbl_none = QLabel("ไม่มีข้อมูลญาติ")
             lbl_none.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-            lbl_none.setStyleSheet("color: #b71c1c;")
+            lbl_none.setObjectName('Qlabel_lbl_none')
+            # lbl_none.setStyleSheet("color: #b71c1c;")
             form.addRow(QLabel(""), lbl_none)
 
         layout.addLayout(form)
 
         btn_close = QPushButton('ปิด')
-        btn_close.setStyleSheet("""
-            QPushButton {
-                background-color: #1976d2;
-                color: #fff;
-                border-radius: 6px;
-                padding: 8px 24px;
-                font-size: 15px;
-                font-weight: bold;
-            }
-            QPushButton:hover {
-                background-color: #0d47a1;
-            }
-        """)
+        btn_close.setObjectName('btn_close')
+
         btn_close.clicked.connect(self.accept)
         layout.addWidget(btn_close, alignment=Qt.AlignmentFlag.AlignRight)
 
@@ -207,6 +213,67 @@ class Prisoner_list_popup(QDialog):
         btn_close.clicked.connect(self.accept)
         layout.addWidget(btn_close, alignment=Qt.AlignmentFlag.AlignRight)
 
+    def show_add_relative_form(self, prisoner, title):
+        def read_id_card():
+            thai_id_card = ThaiIDReader()
+            thai_id_card.read_card()
+            info = thai_id_card.get_person_info()
+            return info
+
+        def check_id_card_on_db():
+            '''
+            ตรวจสอบข้อมูลญาติจาก การอ่านบัตรประชาชน
+            '''
+            try:
+                thai_id = read_id_card()
+                print(thai_id)
+            except Exception as e:
+                print(f'ปัญหาการอ่านบัตร {e}')
+
+        self.setWindowTitle(title)
+        layout = QVBoxLayout(self)
+
+        form = QFormLayout()
+
+        self.input_btn_read_card = QPushButton('อ่านบัตรฯ')
+        self.input_btn_read_card.clicked.connect(lambda: check_id_card_on_db())
+        self.input_id_card = QLineEdit()
+        self.input_title = QComboBox()
+        self.input_fname = QLineEdit()
+        self.input_lname = QLineEdit()
+        self.input_address = QTextEdit()
+        self.input_tel = QLineEdit()
+        self.input_relation = QComboBox()
+
+        self.input_title.addItems(['นาย','นาง','นางสาว','เด็กหญิง','เด็กชาย', ])
+        self.input_relation.addItems(['ปู่', 'ย่า', 'ตา', 'ยาย', 'ลุง', 'ป้า', 'พ่อ', 'แม่', 'น้า', 'พี่ชาย', 'พี่สาว', 'น้องชาย', 'น้องสาว', 'สามี', 'ภรรยา', 'ลูกสาว', 'ลูกชาย', 'อื่น ๆ'])
+
+        form.addRow('', self.input_btn_read_card)
+        form.addRow('หมายเลขบัตรฯ ', self.input_id_card)
+        form.addRow('คำนำหน้า', self.input_title)
+        form.addRow('ชื่อ', self.input_fname)
+        form.addRow('นามสกุล', self.input_lname)
+        form.addRow('ที่อยู่', self.input_address)
+        form.addRow('เบอร์โทร', self.input_tel)
+        form.addRow('ความสัมพันธ์', self.input_relation)
+
+        layout.addLayout(form)
+
+        btn_save = QPushButton('บันทึก')
+        btn_save.clicked.connect(lambda: self.save_relative(prisoner))
+
+        btn_close = QPushButton('ปิด')
+        btn_close.clicked.connect(self.reject)
+
+        btn_layout = QHBoxLayout()
+        btn_layout.addWidget(btn_save)
+        btn_layout.addWidget(btn_close)
+        layout.addLayout(btn_layout)
+
+    def save_relative(self, prisoner):
+        
+        print('save_relative')
+
 class Prisoners_list(QWidget):
     def __init__(self):
         super().__init__()
@@ -219,14 +286,15 @@ class Prisoners_list(QWidget):
      
         # หัวข้อ
         title_label = QLabel('รายชื่อผู้ต้องขัง')
+        title_label.setObjectName('Qlabel_title_lable')
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        title_label.setStyleSheet('''
-            font-size: 22px;
-            font-weight: bold;
-            color: #000000;
-            margin-bottom: 1px;
-            margin-top: 10px;
-        ''')
+        # title_label.setStyleSheet('''
+        #     font-size: 22px;
+        #     font-weight: bold;
+        #     color: #000000;
+        #     margin-bottom: 1px;
+        #     margin-top: 10px;
+        # ''')
 
         # Layout
         vbox = QVBoxLayout()
@@ -237,118 +305,119 @@ class Prisoners_list(QWidget):
 
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
-        self.setStyleSheet("""
-                    #main_prisoner_list_widget {
-                        background: #fff;
-                        border: 1.5px solid #e0e0e0;
-                        border-radius: 10px;
-                        margin: 10px 10px 10px 1px;
-                    }
-                    QWidget {
-                        background: #fff;
-                        color: #222;
-                        font-family: 'Sarabun', Arial, sans-serif;
-                        font-size: 14px;
-                    }
-                    QLabel {
-                        color: #333;
-                        font-weight: bold;
-                        font-family: 'Sarabun', Arial, sans-serif;
+        # self.setStyleSheet("""
+        #             #main_prisoner_list_widget {
+        #                 background: #fff;
+        #                 border: 1.5px solid #e0e0e0;
+        #                 border-radius: 10px;
+        #                 margin: 10px 10px 10px 1px;
+        #             }
+        #             QWidget {
+        #                 background: #fff;
+        #                 color: #222;
+        #                 font-family: 'Sarabun', Arial, sans-serif;
+        #                 font-size: 14px;
+        #             }
+        #             QLabel {
+        #                 color: #333;
+        #                 font-weight: bold;
+        #                 font-family: 'Sarabun', Arial, sans-serif;
                            
-                    }
-                    QTableView {
-                        background: #f5f6fa;
-                        border: 1px solid #e0e0e0;
-                        border-radius: 6px;
-                        color: #222;
-                        font-size: 14px;
-                        gridline-color: #e8e8e8;
-                        selection-background-color: #d9e8ff;
-                        selection-color: #111;
-                    }
-                    QHeaderView::section {
-                        background: #e0e0e0;
-                        color: #222;
-                        font-weight: bold;
-                        border: none;
-                        border-radius: 6px;
-                        padding: 6px;
-                    }
-                    QScrollBar:vertical {
-                        background: #f0f0f0;
-                        width: 10px;
-                        margin: 2px 2px 2px 2px;
-                        border-radius: 5px;
-                    }
-                    QScrollBar::handle:vertical {
-                        background: #b8c0cc;
-                        min-height: 30px;
-                        border-radius: 5px;
-                    }
-                    QScrollBar::handle:vertical:hover {
-                        background: #9da9b7;
-                    }
-                    QScrollBar::add-line:vertical,
-                    QScrollBar::sub-line:vertical {
-                        height: 0px;
-                        background: none;
-                    }
-                    QScrollBar:horizontal {
-                        background: #f0f0f0;
-                        height: 10px;
-                        margin: 2px 2px 2px 2px;
-                        border-radius: 5px;
-                    }
-                    QScrollBar::handle:horizontal {
-                        background: #b8c0cc;
-                        min-width: 30px;
-                        border-radius: 5px;
-                    }
-                    QScrollBar::handle:horizontal:hover {
-                        background: #9da9b7;
-                    }
-                    QScrollBar::add-line:horizontal,
-                    QScrollBar::sub-line:horizontal {
-                        width: 0px;
-                        background: none;
-                    }
-                    QLineEdit {
-                        background: #f5f6fa;
-                        border: 1px solid #e0e0e0;
-                        border-radius: 6px;
-                        padding: 6px;
-                        color: #222;
-                    }
-                    QLineEdit:focus {
-                        border: 1.5px solid #5e81f4;
-                        background: #fff;
-                    }    
-                    QCheckBox {
-                        spacing: 8px;
-                        font-size: 14px;
-                        color: #222;
-                        padding: 2px 0 2px 4px;
-                    }
-                    QCheckBox::indicator {
-                        width: 18px;
-                        height: 18px;
-                        border-radius: 4px;
-                        border: 1.5px solid #5e81f4;
-                        background: #fff;
-                    }
-                    QCheckBox::indicator:checked {
-                        background: #5e81f4;
-                        border: 1.5px solid #4666c9;
-                    }
-                    QCheckBox::indicator:unchecked {
-                        background: #fff;
-                        border: 1.5px solid #b0b0b0;
-                    }
-                    QCheckBox::indicator:disabled {
-                        background: #e0e0e0;
-                        border: 1.5px solid #b0b0b0;
-                    }
-                """)
+        #             }
+        #             QTableView {
+        #                 background: #f5f6fa;
+        #                 border: 1px solid #e0e0e0;
+        #                 border-radius: 6px;
+        #                 color: #222;
+        #                 font-size: 14px;
+        #                 gridline-color: #e8e8e8;
+        #                 selection-background-color: #d9e8ff;
+        #                 selection-color: #111;
+        #             }
+        #             QHeaderView::section {
+        #                 background: #e0e0e0;
+        #                 color: #222;
+        #                 font-weight: bold;
+        #                 border: none;
+        #                 border-radius: 6px;
+        #                 padding: 6px;
+        #             }
+        #             QScrollBar:vertical {
+        #                 background: #f0f0f0;
+        #                 width: 10px;
+        #                 margin: 2px 2px 2px 2px;
+        #                 border-radius: 5px;
+        #             }
+        #             QScrollBar::handle:vertical {
+        #                 background: #b8c0cc;
+        #                 min-height: 30px;
+        #                 border-radius: 5px;
+        #             }
+        #             QScrollBar::handle:vertical:hover {
+        #                 background: #9da9b7;
+        #             }
+        #             QScrollBar::add-line:vertical,
+        #             QScrollBar::sub-line:vertical {
+        #                 height: 0px;
+        #                 background: none;
+        #             }
+        #             QScrollBar:horizontal {
+        #                 background: #f0f0f0;
+        #                 height: 10px;
+        #                 margin: 2px 2px 2px 2px;
+        #                 border-radius: 5px;
+        #             }
+        #             QScrollBar::handle:horizontal {
+        #                 background: #b8c0cc;
+        #                 min-width: 30px;
+        #                 border-radius: 5px;
+        #             }
+        #             QScrollBar::handle:horizontal:hover {
+        #                 background: #9da9b7;
+        #             }
+        #             QScrollBar::add-line:horizontal,
+        #             QScrollBar::sub-line:horizontal {
+        #                 width: 0px;
+        #                 background: none;
+        #             }
+        #             QLineEdit {
+        #                 background: #f5f6fa;
+        #                 border: 1px solid #e0e0e0;
+        #                 border-radius: 6px;
+        #                 padding: 6px;
+        #                 color: #222;
+        #             }
+        #             QLineEdit:focus {
+        #                 border: 1.5px solid #5e81f4;
+        #                 background: #fff;
+        #             }    
+        #             QCheckBox {
+        #                 spacing: 8px;
+        #                 font-size: 14px;
+        #                 color: #222;
+        #                 padding: 2px 0 2px 4px;
+        #             }
+        #             QCheckBox::indicator {
+        #                 width: 18px;
+        #                 height: 18px;
+        #                 border-radius: 4px;
+        #                 border: 1.5px solid #5e81f4;
+        #                 background: #fff;
+        #             }
+        #             QCheckBox::indicator:checked {
+        #                 background: #5e81f4;
+        #                 border: 1.5px solid #4666c9;
+        #             }
+        #             QCheckBox::indicator:unchecked {
+        #                 background: #fff;
+        #                 border: 1.5px solid #b0b0b0;
+        #             }
+        #             QCheckBox::indicator:disabled {
+        #                 background: #e0e0e0;
+        #                 border: 1.5px solid #b0b0b0;
+        #             }
+        #         """)
+        
         self.proportions = [
             0.06,  # รหัสประจำตัว
             0.04,  # เพศ
@@ -548,6 +617,7 @@ class Prisoners_list(QWidget):
         if not index.isValid():
             return
         menu = QMenu()
+        menu.setObjectName('menu_prisonter_list')
 
         # ดึงชื่อ - สกุลจากตาราง
         row_data = self.table_model._data[index.row()]
@@ -576,28 +646,28 @@ class Prisoners_list(QWidget):
         menu.addSeparator()  # เส้นคั่น
         menu.addAction(action_edit_prisoner)
 
-        # ปรับสไตล์เมนู (ตัวอย่าง)
-        menu.setStyleSheet("""
-            QMenu {
-                font-family: 'Sarabun', Arial, sans-serif;
-                font-size: 14px;
-                background: #FFFFFF;
-                border: 1.5px solid #000000;
-            }
-            QMenu::item {
-                padding: 6px 24px 6px 24px;
-                color: #0c5b9c
-            }
-            QMenu::item:selected {
-                background-color: #d9e8ff;
-                color: #12344f;
-            }
-            QMenu::separator {
-                height: 1px;
-                background: #b0b0b0;
-                margin: 4px 0 4px 0;
-            }
-        """)
+        # # ปรับสไตล์เมนู (ตัวอย่าง)
+        # menu.setStyleSheet("""
+        #     QMenu {
+        #         font-family: 'Sarabun', Arial, sans-serif;
+        #         font-size: 14px;
+        #         background: #FFFFFF;
+        #         border: 1.5px solid #000000;
+        #     }
+        #     QMenu::item {
+        #         padding: 6px 24px 6px 24px;
+        #         color: #0c5b9c
+        #     }
+        #     QMenu::item:selected {
+        #         background-color: #d9e8ff;
+        #         color: #12344f;
+        #     }
+        #     QMenu::separator {
+        #         height: 1px;
+        #         background: #b0b0b0;
+        #         margin: 4px 0 4px 0;
+        #     }
+        # """)
         
         menu.exec(self.table_view.viewport().mapToGlobal(position))
 
@@ -607,14 +677,14 @@ class Prisoners_list(QWidget):
         # คุณสามารถแสดง popup หรือ dialog ตามต้องการ
 
         dialog = Prisoner_list_popup(self)
-        dialog.show_detail(data, title='รายละเอียด')
+        dialog.show_detail(data, title=f'รายละเอียด ราย {data[2]} {data[3]}')
         dialog.exec()
 
     def add_relative(self, row):
         data = self.table_model._data[row]
         print(data)
         dialog = Prisoner_list_popup(self)
-        dialog.add_reltive(data, title='เพิ่มข้อมูลญาติ')
+        dialog.show_add_relative_form(data, title=f'เพิ่มข้อมูลญาติ ราย {data[2]} {data[3]}')
         dialog.exec()
 
 

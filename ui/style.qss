@@ -1,0 +1,461 @@
+/* ไฟล์ login.py */
+
+QWidget#Qwidget_login{
+    background-color: #fff;
+    color: #222;
+    font-family: 'Sarabun', Arial, sans-serif;
+    font-size: 14px;
+}
+
+QWidget#Qwidget_login QLabel{
+    color: #333;
+    font-weight: bold;
+    font-size: 14px;
+
+}
+
+QWidget#Qwidget_login QLineEdit{
+    background: #f5f6fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 6px;
+    color: #222;
+    font-size: 14px;
+
+}
+
+QWidget#Qwidget_login QLineEdit:focus {
+    border: 1.5px solid #5e81f4;
+    background: #fff;
+    font-size: 14px;
+
+}
+
+QWidget#Qwidget_login QPushButton {
+    background-color: #5e81f4;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 0;
+    font-weight: bold;
+    font-size: 14px;
+
+}
+
+QWidget#Qwidget_login QPushButton:hover {
+    background-color: #4666c9;
+}
+
+/* -------------------------------------*/
+/* -------------------------------------*/
+
+/* ไฟล์ menu_frame.py */
+QFrame#menu_frame {
+    background: #fff;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 10px;
+    margin: 10px 1px 10px 10px;
+    font-family: 'Sarabun', Arial, sans-serif;
+}
+
+QFrame#menu_frame QPushButton{
+    background: #f5f6fa;
+    color: #222;
+    border: 1px solid #e0e0e0;
+    border-radius: 7px;
+    padding: 10px 0;
+    margin-bottom: 8px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+QFrame#menu_frame QPushButton:hover{
+    background: #e3e8f0;
+    color: #1a73e8;
+    border: 1px solid #b3c6f7;
+    font-weight: bold;
+}
+QFrame#menu_frame QLabel {
+    font-size: 16px;
+    font-weight: bold;
+    color: #222;
+    margin-top: 22px;
+    margin-bottom: 8px;
+    background: transparent;
+    border: none;
+}
+
+/* -------------------------------------*/
+/* -------------------------------------*/
+
+/* ไฟล์ register_prisoner.py */
+QWidget#prisoner_register_widget {
+    background: #fff;
+    color: #222;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 10px;
+    margin: 10px 10px 10px 1px;
+    font-family: 'Sarabun', Arial, sans-serif;
+    font-size: 14px;
+}
+QWidget#prisoner_register_widget QLabel{
+    color: #333;
+    font-family: 'Sarabun', Arial, sans-serif;
+    font-weight: bold;
+    font-size: 14px;
+
+}
+QWidget#prisoner_register_widget QLineEdit, QComboBox {
+    background: #f5f6fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 6px;
+    color: #222;
+}
+QWidget#prisoner_register_widget QLineEdit:focus, QComboBox:focus {
+    border: 1.5px solid #5e81f4;
+    background: #fff;
+}
+QWidget#prisoner_register_widget QPushButton{
+    border: none;
+    border-radius: 6px;
+    padding: 8px 0;
+    font-size: 14px;
+    font-weight: bold;
+}
+QWidget#prisoner_register_widget QPushButton#btn_submit {
+    background-color: #5e81f4;
+    color: #fff;
+}            
+QWidget#prisoner_register_widget QPushButton#btn_clear {
+    background-color: #e0e0e0;
+    color: #333;
+
+}
+QWidget#prisoner_register_widget QPushButton#btn_submit:hover {
+    background-color: #4666c9;
+}
+QWidget#prisoner_register_widget QPushButton#btn_clear:hover {
+    background-color: #b0bec5;
+}
+QWidget#prisoner_register_widget QComboBox {
+        background: #f5f6fa;
+        border: 1.5px solid #e0e0e0;
+        border-radius: 6px;
+        padding: 6px 30px 6px 10px;
+        color: #222;
+        font-size: 14px;
+}
+QWidget#prisoner_register_widget QComboBox:focus {
+    border: 1.5px solid #5e81f4;
+    background: #fff;
+}
+QWidget#prisoner_register_widget QComboBox::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 24px;
+    border-left: 1px solid #e0e0e0;
+    background: #e0e0e0;
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+QWidget#prisoner_register_widget QComboBox::down-arrow {
+    image: url(:/qt-project.org/styles/commonstyle/images/arrowdown-16.png);
+    width: 16px;
+    height: 16px;
+}
+QWidget#prisoner_register_widget QComboBox QAbstractItemView {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    selection-background-color: #5e81f4;
+    selection-color: #fff;
+    font-size: 14px;
+}
+QWidget#prisoner_register_widget QLineEdit, QComboBox, QTextEdit {
+    background: #f5f6fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 6px;
+    color: #222;
+    font-size: 14px;
+}
+QWidget#prisoner_register_widget QLineEdit:focus, QComboBox:focus, QTextEdit:focus {
+    border: 1.5px solid #5e81f4;
+    background: #fff;
+}
+QWidget#prisoner_register_widget QTextEdit {
+    background: #f5f6fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 6px;
+    color: #222;
+    font-size: 14px;
+}
+QWidget#prisoner_register_widget QTextEdit:focus {
+    border: 1.5px solid #5e81f4;
+    background: #fff;
+}
+/* ตกแต่ง scrollbar ของ QTextEdit */
+QWidget#prisoner_register_widget QTextEdit QScrollBar:vertical {
+    background: #e0e0e0;
+    width: 12px;
+    margin: 2px 0 2px 0;
+    border-radius: 6px;
+}
+QWidget#prisoner_register_widget QTextEdit QScrollBar::handle:vertical {
+    background: #b0bec5;
+    min-height: 20px;
+    border-radius: 6px;
+}
+QWidget#prisoner_register_widget QTextEdit QScrollBar::handle:vertical:hover {
+    background: #5e81f4;
+}
+QWidget#prisoner_register_widget QTextEdit QScrollBar::add-line:vertical, QTextEdit QScrollBar::sub-line:vertical {
+    background: none;
+    height: 0px;
+}
+QWidget#prisoner_register_widget QTextEdit QScrollBar::add-page:vertical, QTextEdit QScrollBar::sub-page:vertical {
+    background: none;
+}
+QWidget#prisoner_register_widget #register_label{
+    font-size: 22px;
+    font-weight: bold;
+    color: #000000;
+    margin-bottom: 1px;
+    margin-top: 10px;
+}
+
+
+
+/* -------------------------------------*/
+/* -------------------------------------*/
+
+/* ไฟล์ alert_box.py*/
+QMessageBox#appMessageBox {
+    background-color: #f5f6fa;
+    font-family: 'Sarabun', Arial, sans-serif;
+    font-size: 16px;
+}
+
+QMessageBox#appMessageBox QLabel {
+    color: #333;
+}
+
+QMessageBox#appMessageBox QPushButton {
+    background-color: #5e81f4;
+    color: #fff;
+    border-radius: 6px;
+    padding: 6px 18px;
+    font-weight: bold;
+}
+
+QMessageBox#appMessageBox QPushButton:hover {
+    background-color: #4666c9;
+}
+
+/* -------------------------------------*/
+/* -------------------------------------*/
+
+/* ไฟล์ prisoners_list.py*/
+
+/*########   class ResponsiveTableView ###########*/
+
+QTableView#Qtable_View {
+    background-color: #ffffff;
+    alternate-background-color: #e3f2fd; /* สีฟ้าอ่อน */
+}
+QTableView#Qtable_View::indicator:checked{
+    background-color: #1976d2; /* สี checkbox ที่ติ๊ก */
+    border: 1px solid #1976d2;
+}
+
+QTableView#Qtable_View::indicator:unchecked{
+    background-color: #ffffff;
+    border: 1px solid #1976d2;
+}
+
+/*########   class ResponsiveTableView ###########*/
+
+QDialog#prisoner_list_popup #Qlabel_header {
+    font-size: 20px; 
+    font-weight: bold; 
+    color: #1a237e; 
+    margin-bottom: 8px;
+}
+QDialog#prisoner_list_popup #Qlabel_line{
+    background: #b0bec5; 
+    margin-bottom: 8px;
+}
+
+QDialog#prisoner_list_popup #Qlabel_lbl_key{
+    color: #37474f; 
+    font-weight: bold;
+}
+
+QDialog#prisoner_list_popup #Qlabel_lbl_val{
+    color: #263238;
+}
+
+QDialog#prisoner_list_popup #Qlabel_rel_header{
+    font-size: 16px; 
+    font-weight: bold; 
+    color: #1565c0; 
+    margin-top: 12px;
+}
+
+QDialog#prisoner_list_popup #Qlabel_lbl_rel{
+    color: #37474f; 
+    margin-bottom: 2px;
+}
+
+QDialog#prisoner_list_popup #Qlabel_lbl_none{
+    color: #b71c1c;
+}
+
+
+/*########   class prisoners_list ###########*/
+
+QWidget#main_prisoner_list_widget #Qlabel_title_lable{
+    font-size: 22px;
+    font-weight: bold;
+    color: #000000;
+    margin-bottom: 1px;
+    margin-top: 10px;
+}
+
+QWidget#main_prisoner_list_widget {
+    background: #fff;
+    color: #222;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 10px;
+    margin: 10px 10px 10px 1px;
+    font-family: 'Sarabun', Arial, sans-serif;
+    font-size: 14px;
+
+}
+
+QWidget#main_prisoner_list_widget QLabel {
+    color: #333;
+    font-weight: bold;
+    font-family: 'Sarabun', Arial, sans-serif;               
+}
+QWidget#main_prisoner_list_widget QTableView {
+    background: #f5f6fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    color: #222;
+    font-size: 14px;
+    gridline-color: #e8e8e8;
+    selection-background-color: #d9e8ff;
+    selection-color: #111;
+}
+QWidget#main_prisoner_list_widget QHeaderView::section {
+    background: #e0e0e0;
+    color: #222;
+    font-weight: bold;
+    border: none;
+    border-radius: 6px;
+    padding: 6px;
+}
+QWidget#main_prisoner_list_widget QScrollBar:vertical {
+    background: #f0f0f0;
+    width: 10px;
+    margin: 2px 2px 2px 2px;
+    border-radius: 5px;
+}
+QWidget#main_prisoner_list_widget QScrollBar::handle:vertical {
+    background: #b8c0cc;
+    min-height: 30px;
+    border-radius: 5px;
+}
+QWidget#main_prisoner_list_widget QScrollBar::handle:vertical:hover {
+    background: #9da9b7;
+}
+QWidget#main_prisoner_list_widget QScrollBar::add-line:vertical,
+QWidget#main_prisoner_list_widget QScrollBar::sub-line:vertical {
+    height: 0px;
+    background: none;
+}
+QWidget#main_prisoner_list_widget QScrollBar:horizontal {
+    background: #f0f0f0;
+    height: 10px;
+    margin: 2px 2px 2px 2px;
+    border-radius: 5px;
+}
+QWidget#main_prisoner_list_widget QScrollBar::handle:horizontal {
+    background: #b8c0cc;
+    min-width: 30px;
+    border-radius: 5px;
+}
+QWidget#main_prisoner_list_widget QScrollBar::handle:horizontal:hover {
+    background: #9da9b7;
+}
+QWidget#main_prisoner_list_widget QScrollBar::add-line:horizontal,
+QWidget#main_prisoner_list_widget QScrollBar::sub-line:horizontal {
+    width: 0px;
+    background: none;
+}
+QWidget#main_prisoner_list_widget QLineEdit {
+    background: #f5f6fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    padding: 6px;
+    color: #222;
+}
+QWidget#main_prisoner_list_widget QLineEdit:focus {
+    border: 1.5px solid #5e81f4;
+    background: #fff;
+}    
+QWidget#main_prisoner_list_widget QCheckBox {
+    spacing: 8px;
+    font-size: 14px;
+    color: #222;
+    padding: 2px 0 2px 4px;
+}
+QWidget#main_prisoner_list_widget QCheckBox::indicator {
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+    border: 1.5px solid #5e81f4;
+    background: #fff;
+}
+QWidget#main_prisoner_list_widget QCheckBox::indicator:checked {
+    background: #5e81f4;
+    border: 1.5px solid #4666c9;
+}
+QWidget#main_prisoner_list_widget QCheckBox::indicator:unchecked {
+    background: #fff;
+    border: 1.5px solid #b0b0b0;
+}
+QWidget#main_prisoner_list_widget QCheckBox::indicator:disabled {
+    background: #e0e0e0;
+    border: 1.5px solid #b0b0b0;
+}
+
+QMenu#menu_prisonter_list {
+    font-family: 'Sarabun', Arial, sans-serif;
+    font-size: 14px;
+    background: #FFFFFF;
+    border: 1.5px solid #000000;
+}
+QMenu#menu_prisonter_list QMenu::item {
+    padding: 6px 24px 6px 24px;
+    color: #0c5b9c
+}
+QMenu#menu_prisonter_list QMenu::item:selected {
+    background-color: #d9e8ff;
+    color: #12344f;
+}
+QMenu#menu_prisonter_list QMenu::separator {
+    height: 1px;
+    background: #b0b0b0;
+    margin: 4px 0 4px 0;
+}
+
+
+
+
+
+
+
+

@@ -248,7 +248,32 @@ class POSTGRESQL():
             )
             return cur.fetchall()
 
+    @log_db_exceptions
+    def insert_relative_and_relation(self, prisoner_id, title, f_name, l_name, address, tel, relation, user_insert = None):
+        '''
+        เพิ่มข้อมูลญาติไปยัง db และความสัมพันธ์ไปยัง db
+        '''
+        with self.conn.cursor() as cur:
+            # เพิ่มข้อมูลไปยัง relatives
+            cur.execute(
+                '''
+                INSERT INTO relatives (title, f_name, l_name, address, tel, isactive, user_insert)
+                VALUES (%s, %s, %s, %s, %s, TRUE, %s )
+                RETURNING relative_id
+                ''',
+                (title, f_name, l_name, address, tel, user_insert)
+            )
+            relative_id = cur.fetchone()[0]
 
+            # เพิ่มข้อมูลไปยัง reltions
+            cur.execute(
+                '''
+                INSERT INTO relations (prisoner_id, relative_id, relation, is_active, user_insert)
+                VALUES (%s, %s, %s, TRUE, %s)
+                ''',
+                (prisoner_id, relative_id, relation, user_insert)
+            )
+        return True
 
 
     def log_error(self, function_name, error_message, extra_info=None):
