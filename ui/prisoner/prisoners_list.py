@@ -17,11 +17,13 @@ from PyQt6.QtWidgets import (
     QPushButton
 )
 
-from PyQt6.QtCore import Qt, QAbstractTableModel
+from PyQt6.QtCore import Qt, QAbstractTableModel, QEvent
 from PyQt6.QtGui import QBrush, QColor ,QAction
 
 from db.db import POSTGRESQL
 from ui.alert_box import AlertBox
+
+from datetime import datetime
 
 class PrisonersTableModel(QAbstractTableModel):
     def __init__(self, data, headers):
@@ -127,6 +129,21 @@ class Prisoner_list_popup(QDialog):
             value = ''
             if prisoner and i < len(prisoner) and prisoner[i] is not None:
                 value = str(prisoner[i])
+                if i == 10:
+                    try: 
+                        dt = datetime.strptime(value.split('.')[0], "%Y-%m-%d %H:%M:%S")
+                        months = [
+                            "", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+                            "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+                        ]
+                        day = dt.day
+                        month = months[dt.month]
+                        year = dt.year
+                        hour = dt.hour
+                        minute = dt.minute
+                        value = f"{day} {month} {year} เวลา {hour:02d}:{minute:02d} น."
+                    except Exception as e:
+                        pass  # ถ้าแปลงไม่ได้ ให้แสดงค่าดิบ
             lbl_key = QLabel(label + " :")
             lbl_key.setStyleSheet("color: #37474f; font-weight: bold;")
             lbl_val = QLabel(value)
@@ -447,7 +464,6 @@ class Prisoners_list(QWidget):
         disciplinary_group.setLayout(disciplinary_layout)
         filter_layout.addWidget(disciplinary_group, 0, 5)
 
-
         # ช่องค้นหา
         search_group = QGroupBox('ค้นหาและแสดงผล')
         self.search_box = QLineEdit()
@@ -594,10 +610,9 @@ class Prisoners_list(QWidget):
         dialog.show_detail(data, title='รายละเอียด')
         dialog.exec()
 
-
-
     def add_relative(self, row):
         data = self.table_model._data[row]
+        print(data)
         dialog = Prisoner_list_popup(self)
         dialog.add_reltive(data, title='เพิ่มข้อมูลญาติ')
         dialog.exec()
