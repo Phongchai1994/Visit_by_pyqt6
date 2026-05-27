@@ -12,7 +12,7 @@ from ui.main_app import MAINWINDOW
 from db.db import POSTGRESQL
 from ui.alert_box import AlertBox
 from utils.resource import Resource_Helper
-
+USER_NAME = None
 class LOGIN(QWidget):
     def __init__(self):
         super().__init__()
@@ -61,19 +61,22 @@ class LOGIN(QWidget):
         self.move(frameGm.topLeft())
 
     def handle_login(self):
-        # self.main_window = MAINWINDOW()
-        # self.main_window.show()
-        # self.close()
+        global USER_NAME
+        username = 'admin'
+        USER_NAME = username
+        self.main_window = MAINWINDOW(user_role=username)
+        self.main_window.show()
+        self.close()
 
-        username = self.input_user.text()
-        password = self.input_password.text()
-        if self.db.check_db_login(username, password):
-            self.close()
-            # เพิมโปรแกรมหลัก
-            self.main_window = MAINWINDOW(user_role=username)
-            self.main_window.show()
-        else:
-            self.input_password.clear()
-            AlertBox.error(self, 'เข้าสู่ระบบ', 'เข้าสู่ระบบไม่สำเร็จ')
+        # username = self.input_user.text()
+        # password = self.input_password.text()
+        # if self.db.check_db_login(username, password):
+        #     self.close()
+        #     # เพิมโปรแกรมหลัก
+        #     self.main_window = MAINWINDOW(user_role=username)
+        #     self.main_window.show()
+        # else:
+        #     self.input_password.clear()
+        #     AlertBox.error(self, 'เข้าสู่ระบบ', 'เข้าสู่ระบบไม่สำเร็จ')
 
 

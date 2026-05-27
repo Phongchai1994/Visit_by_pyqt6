@@ -7,13 +7,6 @@ from dotenv import load_dotenv
 
 load_dotenv(load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '.env')))
 
-# print('SQLITE_DB',os.getenv("SQLITE_DB"))
-# print('PG_HOST',os.getenv("PG_HOST"))
-# print('PG_PORT',os.getenv("PG_PORT"))
-# print('PG_NAME',os.getenv("PG_NAME"))
-# print('PG_USER',os.getenv("PG_USER"))
-# print('PG_PASS',os.getenv("PG_PASS"))
-
 def log_db_exceptions(func):
     def wrapper(self, *args, **kwargs):
         try:
@@ -249,32 +242,65 @@ class POSTGRESQL():
             return cur.fetchall()
 
     @log_db_exceptions
-    def insert_relative_and_relation(self, prisoner_id, title, f_name, l_name, address, tel, relation, user_insert = None):
+    def insert_relative_and_relation(self,relative_id, prisoner_id, title, f_name, l_name, address, tel, relation, user_insert = None):
         '''
-        เพิ่มข้อมูลญาติไปยัง db และความสัมพันธ์ไปยัง db
+        เพิ่มข้อมูลญาติไปยัง db และความสัมพันธ์ไปยัง db\n
+        ต้องการ relative_id, prisoner_id, title, f_name, l_name, address, tel, relation, user_insert = None
+        
         '''
         with self.conn.cursor() as cur:
-            # เพิ่มข้อมูลไปยัง relatives
+            # ตรวจสอบว่ามี ข้อมูล relative อยู่หรือไม่ โดยใช้ id
             cur.execute(
                 '''
-                INSERT INTO relatives (title, f_name, l_name, address, tel, isactive, user_insert)
-                VALUES (%s, %s, %s, %s, %s, TRUE, %s )
-                RETURNING relative_id
-                ''',
-                (title, f_name, l_name, address, tel, user_insert)
+                SELECT relative_id FROM relatives
+                WHERE relative_id = %s
+                ''', (relative_id,)
             )
-            relative_id = cur.fetchone()[0]
+            row = cur.fetchone()
+            if row:
+                rel_id = row[0]
+                print(f'rel id = {rel_id}')
+            else:
+                cur.execute(
+                    '''
+                    INSERT INTO relatives (title, f_name, l_name, address, tel, is_active, user_insert)
+                    VALUES (%s, %s, %s, %s, %s, TRUE, %s)
+                    RETURNING relative_id
+                    ''',
+                    (title, f_name, l_name, address, tel, user_insert)
+                )
+                rel_id = cur.fetchone()[0]
 
             # เพิ่มข้อมูลไปยัง reltions
             cur.execute(
                 '''
                 INSERT INTO relations (prisoner_id, relative_id, relation, is_active, user_insert)
                 VALUES (%s, %s, %s, TRUE, %s)
+                ON CONFLICT (prisoner_id, relative_id) 
+                DO UPDATE SET
+                    relation = EXCLUDED.relation,
+                    user_insert = EXCLUDED.user_insert
                 ''',
-                (prisoner_id, relative_id, relation, user_insert)
+                (prisoner_id, rel_id, relation, user_insert)
             )
+            print('บันทึกสำเร็จ')
         return True
 
+    @log_db_exceptions
+    def get_relative_data(self, relative_id):
+        '''
+        ดึงข้อมูลญาติ จาก id ของญาติเอง เอาแค่ id,title,f_name,l_name,address,tel
+        '''
+        with self.conn.cursor() as cur:
+            cur.execute(
+                '''
+                SELECT relative_id, title, f_name, l_name, address, tel
+                FROM relatives
+                WHERE relative_id = %s
+                ''',
+                (relative_id,)
+            )
+            return cur.fetchone()
 
     def log_error(self, function_name, error_message, extra_info=None):
         try:
@@ -289,10 +315,10 @@ class POSTGRESQL():
         except Exception as log_e:
             print(f"Error logging to log_error: {log_e}")
 
-if __name__ == "__main__":
-    db = POSTGRESQL()
-    result = db.get_relatives(1)
-    print(result)
-    # for rel in result:
-    #     print('คนที่')
-    #     print(rel)
+# if __name__ == "__main__":
+#     db = POSTGRESQL()
+#     result = db.get_relative_data(str(1560100345135))
+#     print(result)
+#     # for rel in result:
+#     #     print('คนที่')
+#     #     print(rel)

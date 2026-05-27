@@ -19,14 +19,19 @@ from PyQt6.QtWidgets import (
     QTextEdit
 )
 
-from PyQt6.QtCore import Qt, QAbstractTableModel, QEvent
-from PyQt6.QtGui import QBrush, QColor ,QAction
+from PyQt6.QtCore import Qt, QAbstractTableModel, QEvent, QRegularExpression
+from PyQt6.QtGui import QBrush, QColor, QAction, QRegularExpressionValidator
 
 from db.db import POSTGRESQL
+from db.db import log_db_exceptions
 from ui.alert_box import AlertBox
 from devices.card_reader import ThaiIDReader
 
 from datetime import datetime
+
+import os
+import traceback
+import inspect
 
 class PrisonersTableModel(QAbstractTableModel):
     def __init__(self, data, headers):
@@ -114,19 +119,12 @@ class Prisoner_list_popup(QDialog):
         # หัวข้อใหญ่
         header = QLabel('รายละเอียดผู้ต้องขัง')
         header.setObjectName('Qlabel_header')
-        # header.setStyleSheet('''
-                # font-size: 20px; 
-                # font-weight: bold; 
-                # color: #1a237e; 
-                # margin-bottom: 8px;
-        # ''')
         layout.addWidget(header, alignment=Qt.AlignmentFlag.AlignCenter)
 
         # เส้นคั่น
         line = QLabel()
         line.setFixedHeight(2)
         line.setObjectName('Qlabel_line')
-        # line.setStyleSheet("background: #b0bec5; margin-bottom: 8px;")
         layout.addWidget(line)
 
         form = QFormLayout()
@@ -158,16 +156,13 @@ class Prisoner_list_popup(QDialog):
                         pass  # ถ้าแปลงไม่ได้ ให้แสดงค่าดิบ
             lbl_key = QLabel(label + " :")
             lbl_key.setObjectName('Qlabel_lbl_key')
-            # lbl_key.setStyleSheet("color: #37474f; font-weight: bold;")
             lbl_val = QLabel(value)
             lbl_val.setObjectName('Qlabel_lbl_val')
             lbl_val.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-            # lbl_val.setStyleSheet("color: #263238;")
             form.addRow(lbl_key, lbl_val)
 
         rel_header = QLabel('ข้อมูลญาติ')
         rel_header.setObjectName('Qlabel_rel_header')
-        # rel_header.setStyleSheet('font-size: 16px; font-weight: bold; color: #1565c0; margin-top: 12px;')
         form.addRow(rel_header, QLabel(''))
         
         if data_relatives:
@@ -179,13 +174,11 @@ class Prisoner_list_popup(QDialog):
                 lbl_rel = QLabel(rel_text)
                 lbl_rel.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
                 lbl_rel.setObjectName('Qlabel_lbl_rel')
-                # lbl_rel.setStyleSheet("color: #37474f; margin-bottom: 2px;")
                 form.addRow(QLabel(''), lbl_rel)
         else:
             lbl_none = QLabel("ไม่มีข้อมูลญาติ")
             lbl_none.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
             lbl_none.setObjectName('Qlabel_lbl_none')
-            # lbl_none.setStyleSheet("color: #b71c1c;")
             form.addRow(QLabel(""), lbl_none)
 
         layout.addLayout(form)
@@ -196,48 +189,106 @@ class Prisoner_list_popup(QDialog):
         btn_close.clicked.connect(self.accept)
         layout.addWidget(btn_close, alignment=Qt.AlignmentFlag.AlignRight)
 
-    def add_reltive(self, prisoner, title):
-        self.setWindowTitle(title)
-        layout = QVBoxLayout(self)
-        form = QFormLayout()
-        data = self.db.get_relatives(prisoner_id=prisoner[0])
-        if not data:
-            form.addRow(QLabel('ไม่มีข้อมูลญาติ'), QLabel(''))
-        else:
-            for rel in data:
-                name = f'{rel[1]} {rel[2]} {rel[3]}'
-                info = f'{rel[4]} - {rel[5]}'
-                form.addRow(QLabel(name), QLabel(info))
-        layout.addLayout(form)
-        btn_close = QPushButton('ปิด')
-        btn_close.clicked.connect(self.accept)
-        layout.addWidget(btn_close, alignment=Qt.AlignmentFlag.AlignRight)
-
     def show_add_relative_form(self, prisoner, title):
+
         def read_id_card():
             thai_id_card = ThaiIDReader()
             thai_id_card.read_card()
             info = thai_id_card.get_person_info()
             return info
 
-        def check_id_card_on_db():
+        def get_id_on_smartcard():
             '''
             ตรวจสอบข้อมูลญาติจาก การอ่านบัตรประชาชน
             '''
             try:
                 thai_id = read_id_card()
-                print(thai_id)
+                relative_id = thai_id['cid']
+                check_id_in_db(id_card_num=relative_id)
+
             except Exception as e:
+                AlertBox.error(self, 'การอ่านบัตรฯ', 'ตรวจสอบเครื่องอ่านบัตรฯ')
+                func = inspect.currentframe().f_code.co_name
+                self.db.log_error(
+                function_name=f"{os.path.basename(__file__)}::{self.__class__.__name__}::{func}",
+                error_message=f"Error in {func}::: {e}",
+                extra_info=traceback.format_exc()
+                )
                 print(f'ปัญหาการอ่านบัตร {e}')
 
+        def check_id_in_db(id_card_num = None):
+            '''
+                เอาเลขบัตรไปตรวจสอบใน ฐานข้อมูล
+            '''
+            rel_data = self.db.get_relative_data(id_card_num)
+            print(rel_data)
+            if rel_data:
+                self.input_id_card.setText(str(rel_data[0]))
+                self.input_title.setEditText(str(rel_data[1]))
+                self.input_fname.setText(str(rel_data[2]))
+                self.input_lname.setText(str(rel_data[3]))
+                self.input_address.setText(str(rel_data[4]))
+                self.input_tel.setText(str(rel_data[5]))
+            else:
+                AlertBox.error(self, 'ไม่พบข้อมูล', 'ไม่พบข้อมูลญาติในระบบ โปรดป้อนข้อมูลด้วยตนเอง')
+        
+        def save_relative_relation_to_db(prisoner):
+            '''
+            บันทึกข้อมุลลง db'''
+            print(prisoner)
+
+            relative_id = self.input_id_card.text()
+            prisoner_id = prisoner[0]
+            title = self.input_title.currentText()       
+            f_name = self.input_fname.text(),
+            l_name = self.input_lname.text(),
+            address = self.input_address.toPlainText(),
+            tel = self.input_tel.text(),
+            relation = self.input_relation.currentText(),
+
+            if not all([relative_id, title, f_name, l_name, address, tel, relation]):
+                AlertBox.warning(self, 'กรอกข้อมูลไม่ครบ', 'กรุณากรอกข้อมูลให้ครบทุกช่อง')
+                return
+
+            from user.login import USER_NAME
+            # print(self.input_id_card.text())
+            result_insert_data = self.db.insert_relative_and_relation(
+                relative_id = relative_id,
+                prisoner_id = prisoner_id,
+                title = title,
+                f_name = f_name,
+                l_name = l_name,
+                address = address,
+                tel = tel,
+                relation = relation,
+                user_insert = USER_NAME
+            )
+            if result_insert_data:
+                AlertBox.info(self, title='บันทึกข้อมูล', message=f'บันทึกข้อมูลญาติของ {prisoner[2]} {prisoner[3]} สำเร็จ')
+                self.close()
+            else:
+                AlertBox.error(self, title='บันทึกข้อมูล', message=f'บันทึกข้อมูลญาติของ {prisoner[2]} {prisoner[3]} ไม่สำเร็จ')
+            
         self.setWindowTitle(title)
         layout = QVBoxLayout(self)
-
         form = QFormLayout()
+        regex = QRegularExpression(r"\d{0,13}")
+
+        header_label = QLabel(f'เพิ่ม/แก้ไข ข้อมูลญาติ ราย "{prisoner[2]} {prisoner[3]}"')
+        header_label.setObjectName('header_label')
+        layout.addWidget(header_label, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self.input_btn_read_card = QPushButton('อ่านบัตรฯ')
-        self.input_btn_read_card.clicked.connect(lambda: check_id_card_on_db())
+        self.input_btn_read_card.setObjectName('Qpush_input_btn_read_card')
+        self.input_btn_read_card.setAutoDefault(False)
+        self.input_btn_read_card.setDefault(False)
+        self.input_btn_read_card.clicked.connect(lambda: get_id_on_smartcard())
         self.input_id_card = QLineEdit()
+        self.input_id_card.setPlaceholderText('ป้อนหมายเลขแล้วกด Enter เพื่อค้นหา')
+        self.input_id_card.setValidator(QRegularExpressionValidator(regex))
+        self.input_id_card.setMaxLength(13)
+        self.input_id_card.returnPressed.connect(lambda: check_id_in_db(self.input_id_card.text()))
+
         self.input_title = QComboBox()
         self.input_fname = QLineEdit()
         self.input_lname = QLineEdit()
@@ -260,9 +311,15 @@ class Prisoner_list_popup(QDialog):
         layout.addLayout(form)
 
         btn_save = QPushButton('บันทึก')
-        btn_save.clicked.connect(lambda: self.save_relative(prisoner))
+        btn_save.setObjectName('Qpush_btn_save')
+        btn_save.setAutoDefault(False)
+        btn_save.setDefault(False)
+        btn_save.clicked.connect(lambda: save_relative_relation_to_db(prisoner))
 
         btn_close = QPushButton('ปิด')
+        btn_close.setObjectName('Qpush_btn_close')
+        btn_close.setAutoDefault(False)
+        btn_close.setDefault(False)
         btn_close.clicked.connect(self.reject)
 
         btn_layout = QHBoxLayout()
@@ -270,9 +327,6 @@ class Prisoner_list_popup(QDialog):
         btn_layout.addWidget(btn_close)
         layout.addLayout(btn_layout)
 
-    def save_relative(self, prisoner):
-        
-        print('save_relative')
 
 class Prisoners_list(QWidget):
     def __init__(self):
@@ -288,13 +342,6 @@ class Prisoners_list(QWidget):
         title_label = QLabel('รายชื่อผู้ต้องขัง')
         title_label.setObjectName('Qlabel_title_lable')
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        # title_label.setStyleSheet('''
-        #     font-size: 22px;
-        #     font-weight: bold;
-        #     color: #000000;
-        #     margin-bottom: 1px;
-        #     margin-top: 10px;
-        # ''')
 
         # Layout
         vbox = QVBoxLayout()
@@ -305,119 +352,6 @@ class Prisoners_list(QWidget):
 
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
-        # self.setStyleSheet("""
-        #             #main_prisoner_list_widget {
-        #                 background: #fff;
-        #                 border: 1.5px solid #e0e0e0;
-        #                 border-radius: 10px;
-        #                 margin: 10px 10px 10px 1px;
-        #             }
-        #             QWidget {
-        #                 background: #fff;
-        #                 color: #222;
-        #                 font-family: 'Sarabun', Arial, sans-serif;
-        #                 font-size: 14px;
-        #             }
-        #             QLabel {
-        #                 color: #333;
-        #                 font-weight: bold;
-        #                 font-family: 'Sarabun', Arial, sans-serif;
-                           
-        #             }
-        #             QTableView {
-        #                 background: #f5f6fa;
-        #                 border: 1px solid #e0e0e0;
-        #                 border-radius: 6px;
-        #                 color: #222;
-        #                 font-size: 14px;
-        #                 gridline-color: #e8e8e8;
-        #                 selection-background-color: #d9e8ff;
-        #                 selection-color: #111;
-        #             }
-        #             QHeaderView::section {
-        #                 background: #e0e0e0;
-        #                 color: #222;
-        #                 font-weight: bold;
-        #                 border: none;
-        #                 border-radius: 6px;
-        #                 padding: 6px;
-        #             }
-        #             QScrollBar:vertical {
-        #                 background: #f0f0f0;
-        #                 width: 10px;
-        #                 margin: 2px 2px 2px 2px;
-        #                 border-radius: 5px;
-        #             }
-        #             QScrollBar::handle:vertical {
-        #                 background: #b8c0cc;
-        #                 min-height: 30px;
-        #                 border-radius: 5px;
-        #             }
-        #             QScrollBar::handle:vertical:hover {
-        #                 background: #9da9b7;
-        #             }
-        #             QScrollBar::add-line:vertical,
-        #             QScrollBar::sub-line:vertical {
-        #                 height: 0px;
-        #                 background: none;
-        #             }
-        #             QScrollBar:horizontal {
-        #                 background: #f0f0f0;
-        #                 height: 10px;
-        #                 margin: 2px 2px 2px 2px;
-        #                 border-radius: 5px;
-        #             }
-        #             QScrollBar::handle:horizontal {
-        #                 background: #b8c0cc;
-        #                 min-width: 30px;
-        #                 border-radius: 5px;
-        #             }
-        #             QScrollBar::handle:horizontal:hover {
-        #                 background: #9da9b7;
-        #             }
-        #             QScrollBar::add-line:horizontal,
-        #             QScrollBar::sub-line:horizontal {
-        #                 width: 0px;
-        #                 background: none;
-        #             }
-        #             QLineEdit {
-        #                 background: #f5f6fa;
-        #                 border: 1px solid #e0e0e0;
-        #                 border-radius: 6px;
-        #                 padding: 6px;
-        #                 color: #222;
-        #             }
-        #             QLineEdit:focus {
-        #                 border: 1.5px solid #5e81f4;
-        #                 background: #fff;
-        #             }    
-        #             QCheckBox {
-        #                 spacing: 8px;
-        #                 font-size: 14px;
-        #                 color: #222;
-        #                 padding: 2px 0 2px 4px;
-        #             }
-        #             QCheckBox::indicator {
-        #                 width: 18px;
-        #                 height: 18px;
-        #                 border-radius: 4px;
-        #                 border: 1.5px solid #5e81f4;
-        #                 background: #fff;
-        #             }
-        #             QCheckBox::indicator:checked {
-        #                 background: #5e81f4;
-        #                 border: 1.5px solid #4666c9;
-        #             }
-        #             QCheckBox::indicator:unchecked {
-        #                 background: #fff;
-        #                 border: 1.5px solid #b0b0b0;
-        #             }
-        #             QCheckBox::indicator:disabled {
-        #                 background: #e0e0e0;
-        #                 border: 1.5px solid #b0b0b0;
-        #             }
-        #         """)
-        
         self.proportions = [
             0.06,  # รหัสประจำตัว
             0.04,  # เพศ
@@ -536,7 +470,7 @@ class Prisoners_list(QWidget):
         # ช่องค้นหา
         search_group = QGroupBox('ค้นหาและแสดงผล')
         self.search_box = QLineEdit()
-        self.search_box.setPlaceholderText('ค้นหาด้วยชื่อหรือสกุล...')
+        self.search_box.setPlaceholderText('ค้นหาด้วย เลขประจำตัว ชื่อหรือสกุล...')
         self.search_box.textChanged.connect(self.apply_filters)
         search_layout = QGridLayout()
         search_layout.addWidget(self.search_box, 0, 0)
@@ -562,7 +496,7 @@ class Prisoners_list(QWidget):
         filtered = []
         for row in self.all_prisoners:
             # row: [รหัส, เพศ, ชื่อ, สกุล, ...]
-            if search_text and (search_text not in row[2].lower() and search_text not in row[3].lower()):
+            if search_text and (search_text not in row[2].lower() and search_text not in row[3].lower() and search_text not in str(row[0]).lower()):
                 continue
             if genders and row[1] not in genders:
                 continue
@@ -617,7 +551,7 @@ class Prisoners_list(QWidget):
         if not index.isValid():
             return
         menu = QMenu()
-        menu.setObjectName('menu_prisonter_list')
+        menu.setObjectName('menu_prisoner_list')
 
         # ดึงชื่อ - สกุลจากตาราง
         row_data = self.table_model._data[index.row()]
@@ -630,7 +564,7 @@ class Prisoners_list(QWidget):
         menu.addSeparator()
 
         action_detail = QAction('ดูรายละเอียด', self)
-        action_add_relative = QAction('เพิ่มญาติ', self)
+        action_add_relative = QAction('เพิ่ม/แก้ไข ญาติ', self)
         action_del_relative = QAction('ลบญาติ', self)
         action_edit_prisoner = QAction('แก้ไขข้อมูลผู้ต้องขัง', self)
 
@@ -646,43 +580,50 @@ class Prisoners_list(QWidget):
         menu.addSeparator()  # เส้นคั่น
         menu.addAction(action_edit_prisoner)
 
-        # # ปรับสไตล์เมนู (ตัวอย่าง)
-        # menu.setStyleSheet("""
-        #     QMenu {
-        #         font-family: 'Sarabun', Arial, sans-serif;
-        #         font-size: 14px;
-        #         background: #FFFFFF;
-        #         border: 1.5px solid #000000;
-        #     }
-        #     QMenu::item {
-        #         padding: 6px 24px 6px 24px;
-        #         color: #0c5b9c
-        #     }
-        #     QMenu::item:selected {
-        #         background-color: #d9e8ff;
-        #         color: #12344f;
-        #     }
-        #     QMenu::separator {
-        #         height: 1px;
-        #         background: #b0b0b0;
-        #         margin: 4px 0 4px 0;
-        #     }
-        # """)
+        # ปรับสไตล์เมนู (ตัวอย่าง)
+        menu.setStyleSheet("""
+            QMenu {
+                font-family: 'Sarabun', Arial, sans-serif;
+                font-size: 14px;
+                background: #FFFFFF;
+                border: 1.5px solid #000000;
+                color: #222;
+                border-radius: 8px;
+                padding: 4px;
+                min-width: 160px;
+            }
+
+            QMenu::item {
+                padding: 6px 24px;
+                color: #0c5b9c;
+                border-radius: 4px;
+                background: transparent;
+            }
+
+            QMenu::item:selected,
+            QMenu::item:hover {
+                background-color: #b3d1ff;
+                color: #0d47a1;
+            }
+
+            QMenu::separator {
+                height: 1px;
+                background: #b0b0b0;
+                margin: 4px 0 4px 0;
+                border-radius: 1px;
+            }
+        """)
         
         menu.exec(self.table_view.viewport().mapToGlobal(position))
 
     def show_detail(self, row):
-        # ตัวอย่าง: แสดงข้อมูลแถวที่เลือก
         data = self.table_model._data[row]
-        # คุณสามารถแสดง popup หรือ dialog ตามต้องการ
-
         dialog = Prisoner_list_popup(self)
         dialog.show_detail(data, title=f'รายละเอียด ราย {data[2]} {data[3]}')
         dialog.exec()
 
     def add_relative(self, row):
         data = self.table_model._data[row]
-        print(data)
         dialog = Prisoner_list_popup(self)
         dialog.show_add_relative_form(data, title=f'เพิ่มข้อมูลญาติ ราย {data[2]} {data[3]}')
         dialog.exec()

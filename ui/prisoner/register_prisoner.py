@@ -163,6 +163,7 @@ class Prisoner_register_widget(QWidget):
         
         if not all([id, gender, f_name, l_name, lawsuit, level, dan, p_type, status]):
             AlertBox.warning(self, 'กรอกข้อมูลไม่ครบ', 'กรุณากรอกข้อมูลให้ครบทุกช่อง')
+            return
         result = self.db.insert_prisoner(id, gender, f_name, l_name, lawsuit, level, dan, p_type, status)
         if result:
             AlertBox.info(self, 'บันทึกข้อมูล', f'บันทึกข้อมูล {id} สำเร็จ')

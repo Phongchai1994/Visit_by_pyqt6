@@ -125,7 +125,8 @@ class ThaiIDReader:
             elif cmd.label == "TH Fullname":
                 self.title, self.firstname, self.lastname = parse_th_fullname(result)
             elif cmd.label == "Address":
-                self.address = result
+                import re
+                self.address = re.sub(r'\s+', ' ', result).strip()
 
     def get_person_info(self):
         return {
