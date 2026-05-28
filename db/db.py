@@ -235,7 +235,7 @@ class POSTGRESQL():
                 SELECT rel.relative_id, rel.title, rel.f_name, rel.l_name, rel.tel, r.relation
                 FROM relatives rel
                 JOIN relations r ON rel.relative_id = r.relative_id
-                WHERE r.prisoner_id = %s AND rel.is_active = TRUE
+                WHERE r.prisoner_id = %s AND rel.is_active = TRUE AND r.is_active = TRUE
                 ''',
                 (prisoner_id,)
             )
@@ -279,6 +279,7 @@ class POSTGRESQL():
                 ON CONFLICT (prisoner_id, relative_id) 
                 DO UPDATE SET
                     relation = EXCLUDED.relation,
+                    is_active = TRUE,
                     user_insert = EXCLUDED.user_insert
                 ''',
                 (prisoner_id, rel_id, relation, user_insert)
@@ -302,6 +303,21 @@ class POSTGRESQL():
             )
             return cur.fetchone()
 
+    @log_db_exceptions
+    def updete_relation(self, prisoner_id, relative_id, is_active:bool):
+        '''
+        แก้ไขข้อมูลความสัมพันธ์ ต้องการ relative_id, prisoner_id, is_active'''
+        with self.conn.cursor() as cur:
+            print(prisoner_id, relative_id, is_active)
+            cur.execute(
+                '''
+                UPDATE relations
+                SET is_active = %s
+                WHERE prisoner_id = %s AND relative_id = %s
+                ''',(is_active, prisoner_id, relative_id)
+            )
+            return True
+
     def log_error(self, function_name, error_message, extra_info=None):
         try:
             with self.conn.cursor() as cur:
@@ -317,7 +333,7 @@ class POSTGRESQL():
 
 # if __name__ == "__main__":
 #     db = POSTGRESQL()
-#     result = db.get_relative_data(str(1560100345135))
+#     result = db.updete_relation(str(0), str(1560100345135), False)
 #     print(result)
 #     # for rel in result:
 #     #     print('คนที่')

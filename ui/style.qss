@@ -281,6 +281,7 @@ QTableView#Qtable_View::indicator:unchecked{
 
 /*########   class Prisoner_list_popup ###########*/
 
+
 QDialog#prisoner_list_popup QLabel#Qlabel_header {
     font-size: 20px; 
     font-weight: bold; 
@@ -337,7 +338,27 @@ QDialog#prisoner_list_popup QPushButton#btn_close:pressed {
     color: #fff;
 }
 
+QDialog#prisoner_list_popup QPushButton#btn_delete {
+    background-color: #8d1f1f;
+    color: #ffffff;
+    border: 1px solid #6f1616;
+    border-radius: 6px;
+    padding: 7px 16px;
+    font-family: 'Sarabun', Arial, sans-serif;
+    font-size: 14px;
+    font-weight: bold;
+    min-width: 100px;
+}
 
+QDialog#prisoner_list_popup QPushButton#btn_delete:hover {
+    background-color: #a12626;
+    border-color: #821c1c;
+}
+
+QDialog#prisoner_list_popup QPushButton#btn_delete:pressed {
+    background-color: #651515;
+    border-color: #4f1010;
+}
 
 
 

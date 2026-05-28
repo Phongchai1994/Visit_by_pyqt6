@@ -16,7 +16,8 @@ from PyQt6.QtWidgets import (
     QFormLayout,
     QPushButton,
     QComboBox, 
-    QTextEdit
+    QTextEdit,
+    QFrame
 )
 
 from PyQt6.QtCore import Qt, QAbstractTableModel, QEvent, QRegularExpression
@@ -327,6 +328,66 @@ class Prisoner_list_popup(QDialog):
         btn_layout.addWidget(btn_close)
         layout.addLayout(btn_layout)
 
+    def show_delete_relative_form(self, prisoner, title):
+        def delete_relative_form_db(pri_id, rel_id, is_active):
+            result = AlertBox.question(self, 'ลบข้อมูล', f'ต้องการลบความสัมพันธ์ ผตข.ราย{prisoner[2]} {prisoner[3]} \nกับ\nญาติ ราย{rel_id} ')
+            if result:
+                self.close()
+                if self.db.updete_relation(prisoner_id=str(pri_id), relative_id=str(rel_id),is_active=is_active):
+                    AlertBox.success(self, 'เพิ่ม/ลบ ความสัมพันธ์', 'เพิ่ม/ลบ ความสัมพันธ์สำเร็จ')
+                else:
+                    AlertBox.error(self, 'เพิ่ม/ลบ ความสัมพันธ์', 'เพิ่ม/ลบ ความสัมพันธ์ไม่สำเร็จ')
+            else:
+                self.close()
+                AlertBox.error(self, 'เพิ่ม/ลบ ความสัมพันธ์', 'เพิ่ม/ลบ ความสัมพันธ์ไม่สำเร็จ')
+
+        try:
+            data_relatives = self.db.get_relatives(prisoner_id=prisoner[0])
+        except Exception as e:
+            print("get_relatives error:", e)
+            data_relatives = []
+
+        self.setWindowTitle(title)
+        layout = QVBoxLayout(self)
+        header_label = QLabel(f'รายชื่อญาติของ "{prisoner[2]} {prisoner[3]}"')
+        header_label.setObjectName('header_label')
+        layout.addWidget(header_label,alignment=Qt.AlignmentFlag.AlignCenter)
+        
+        line = QFrame()
+        line.setFrameShape(QFrame.Shape.HLine)
+        line.setStyleSheet("color: #bdbdbd; background: #bdbdbd; min-height:2px; max-height:2px;")
+        layout.addWidget(line)
+
+        if data_relatives:
+            for index, value in enumerate(data_relatives,1):
+                try:
+                    rel_text = f"{index}. {value[1]} {value[2]} {value[3]}\n ความสัมพันธ์ : {value[5]}"
+                except Exception as e:
+                    rel_text = f"ข้อมูลผิดปกติ: {value} ({e})"
+                layout_hb = QHBoxLayout()
+                lbl_rel = QLabel(rel_text)
+                lbl_rel.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+                lbl_rel.setObjectName('Qlabel_lbl_rel')
+                btn_delete = QPushButton()
+                btn_delete.setFixedWidth(50)
+                btn_delete.setObjectName('btn_delete')
+                btn_delete.setText('ลบข้อมูล')
+                
+                btn_delete.clicked.connect(lambda checked, rel_id = value[0], pri_id = prisoner[0]: delete_relative_form_db(pri_id, rel_id, False))
+                layout_hb.addWidget(lbl_rel)
+                layout_hb.addWidget(btn_delete, alignment=Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignRight)
+                layout.addLayout(layout_hb)
+                line = QFrame()
+                line.setFrameShape(QFrame.Shape.HLine)
+                line.setStyleSheet("color: #bdbdbd; background: #bdbdbd; min-height:2px; max-height:2px;")
+                layout.addWidget(line)
+
+        else:
+            lbl_none = QLabel("ไม่มีข้อมูลญาติ")
+            lbl_none.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            lbl_none.setObjectName('Qlabel_lbl_none')
+            layout.addWidget(lbl_none)
+
 
 class Prisoners_list(QWidget):
     def __init__(self):
@@ -570,7 +631,7 @@ class Prisoners_list(QWidget):
 
         action_detail.triggered.connect(lambda: self.show_detail(index.row()))
         action_add_relative.triggered.connect(lambda: self.add_relative(index.row()))
-        action_del_relative.triggered.connect(lambda:print('ลบญาติ'))
+        action_del_relative.triggered.connect(lambda: self.delete_relative(index.row()))
         action_edit_prisoner.triggered.connect(lambda:print('แก้ไขข้อมูลผู้ต้องขัง'))
         
         menu.addAction(action_detail)
@@ -628,6 +689,11 @@ class Prisoners_list(QWidget):
         dialog.show_add_relative_form(data, title=f'เพิ่มข้อมูลญาติ ราย {data[2]} {data[3]}')
         dialog.exec()
 
+    def delete_relative(self, row):
+        data = self.table_model._data[row]
+        dialog = Prisoner_list_popup(self)
+        dialog.show_delete_relative_form(data, title=f'ลบข้อมูลญาติ ราย {data[2]} {data[3]}')
+        dialog.exec()
 
 
 
