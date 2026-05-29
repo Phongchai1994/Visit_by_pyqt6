@@ -96,7 +96,6 @@ class Prisoners_list(QWidget):
     def __init__(self):
         super().__init__()
         self.db = POSTGRESQL()
-        self.dialog_popup = Prisoner_list_popup(self)
 
         self.setObjectName('main_prisoner_list_widget')
         main_layout = QVBoxLayout(self)
@@ -283,6 +282,10 @@ class Prisoners_list(QWidget):
         self.table_view.apply_column_widths()
 
     def load_prisoners(self):
+        if self.table_view is not None:
+            self.layout().removeWidget(self.table_view)
+            self.table_view.deleteLater()
+            self.table_view = None
         prisoners = self.db.get_all_prisoners_list()
         if not prisoners:
             AlertBox.error(self, 'load prisoner', 'ดึงข้อมูลผู้ต้องขังไม่สำเร็จ')
@@ -383,23 +386,30 @@ class Prisoners_list(QWidget):
 
     def show_detail(self, row):
         data = self.table_model._data[row]
-        self.dialog_popup.show_detail(data, title=f'รายละเอียด ราย {data[2]} {data[3]}')
-        self.dialog_popup.exec()
+        dialog_popup = Prisoner_list_popup(self)
+        dialog_popup.show_detail(data, title=f'รายละเอียด ราย {data[2]} {data[3]}')
+        dialog_popup.exec()
 
     def add_relative(self, row):
         data = self.table_model._data[row]
-        self.dialog_popup.show_add_relative_form(data, title=f'เพิ่มข้อมูลญาติ ราย {data[2]} {data[3]}')
-        self.dialog_popup.exec()
+        dialog_popup = Prisoner_list_popup(self)
+        dialog_popup.show_add_relative_form(data, title=f'เพิ่มข้อมูลญาติ ราย {data[2]} {data[3]}')
+        dialog_popup.exec()
+        self.load_prisoners()
 
     def delete_relative(self, row):
         data = self.table_model._data[row]
-        self.dialog_popup.show_delete_relative_form(data, title=f'ลบข้อมูลญาติ ราย {data[2]} {data[3]}')
-        self.dialog_popup.exec()
+        dialog_popup = Prisoner_list_popup(self)
+        dialog_popup.show_delete_relative_form(data, title=f'ลบข้อมูลญาติ ราย {data[2]} {data[3]}')
+        dialog_popup.exec()
+        self.load_prisoners()
 
     def edit_prisoner(self, row):
         data = self.table_model._data[row]
-        self.dialog_popup.edit_data_prisoner(data, title=f'แก้ไขข้อมูลผู้ต้องขัง ราย {data[2]} {data[3]}')
-        self.dialog_popup.exec()
+        dialog_popup = Prisoner_list_popup(self)
+        dialog_popup.edit_data_prisoner(data, title=f'แก้ไขข้อมูลผู้ต้องขัง ราย {data[2]} {data[3]}')
+        dialog_popup.exec()
+        self.load_prisoners()
 
 
 

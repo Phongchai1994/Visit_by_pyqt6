@@ -325,10 +325,61 @@ class Prisoner_list_popup(QDialog):
             layout.addWidget(lbl_none)
 
     def edit_data_prisoner(self, prisoner, title):
-        self.windowTitle(title)
+
+        def update_dan_options():
+            gender = edit_gender.currentText()
+            if gender == 'หญิง':
+                edit_dan.clear()
+                edit_dan.addItems(['1'])
+            else:
+                edit_dan.clear()
+                edit_dan.addItems(['รจช','7','6','5','4','3','2'])
+                edit_dan.setCurrentText('7')
+
+        def save_edit_data_prisoner_to_db():
+            id = edit_id.text().strip()
+            gender = edit_gender.currentText().strip()
+            f_name = edit_f_name.text().strip()
+            l_name = edit_l_name.text().strip()
+            lawsuit = edit_lawsuit.toPlainText()
+            level = edit_level.currentText().strip()
+            dan = edit_dan.currentText().strip()
+            p_type = edit_type.currentText().strip()
+            status = edit_status.currentText().strip()
+            before_disciplinary = edit_disciplinary.currentText().strip()
+            if before_disciplinary == "ไม่มี":
+                disciplinary = None
+            else:
+                disciplinary = before_disciplinary
+            
+            if not all([id, gender, f_name, l_name, lawsuit, level, dan, p_type, status]):
+                AlertBox.warning(self, 'กรอกข้อมูลไม่ครบ', 'กรุณากรอกข้อมูลให้ครบทุกช่อง')
+                return
+            result = self.db.insert_and_update_prisoner(id, gender, f_name, l_name, lawsuit, level, dan, p_type, status, disciplinary)
+            if result:
+                AlertBox.info(self, 'แก้ไขข้อมูล', f'แก้ไขข้อมูล {id} สำเร็จ')
+                self.close()
+            else:
+                AlertBox.warning(self, 'แก้ไขข้อมูล', 'แก้ไขข้อมูลไม่สำเร็จ')
+
+
+
+        # variable
+        pri_id = prisoner[0]
+        pri_gender = prisoner[1]
+        pri_fname = prisoner[2]
+        pri_lname = prisoner[3]
+        pri_lawsuit = prisoner[4]
+        pri_level = prisoner[5]
+        pri_dan = prisoner[6]
+        pri_type = prisoner[7]
+        pri_status = prisoner[8]
+        pri_disciplinary = prisoner[9]
+
+        self.setWindowTitle(title)
         layout = QVBoxLayout(self)
-        header_label = QLabel(f'แก้ไขข้อมูลผู้ต้องขัง "{prisoner[2]} {prisoner[3]}"')
-        header_label.setObjectName('header_label')
+        header_label = QLabel(f'แก้ไขข้อมูลผู้ต้องขัง ราย "{prisoner[2]} {prisoner[3]}"')
+        header_label.setObjectName('header_label_edit')
         layout.addWidget(header_label, alignment=Qt.AlignmentFlag.AlignCenter)
 
         h_layout = QHBoxLayout()
@@ -339,5 +390,93 @@ class Prisoner_list_popup(QDialog):
         form.setLabelAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignCenter)
         form.setFormAlignment(Qt.AlignmentFlag.AlignCenter)
 
+        edit_id = QLineEdit()
+        edit_id.setReadOnly(True)
+        edit_gender = QComboBox()
+        edit_f_name = QLineEdit()
+        edit_l_name = QLineEdit()
+        edit_lawsuit = QTextEdit()
+        edit_level = QComboBox()
+        edit_dan = QComboBox()
+        edit_type = QComboBox()
+        edit_status = QComboBox()
+        edit_disciplinary = QComboBox()
+        btn_save = QPushButton('บันทึกข้อมูล')
+        btn_save.setObjectName('btn_save')
+        btn_close = QPushButton('ปิด')
+        btn_close.setObjectName('btn_close')
+        btn_save.setFixedWidth(180)
+        btn_close.setFixedWidth(180)
+
+        # ไม่ให้ป้อนค่าว่าง
+        no_space_validator = QRegularExpressionValidator(QRegularExpression(r"^[^\s]+$"))
+        edit_f_name.setValidator(no_space_validator)
+        edit_l_name.setValidator(no_space_validator)
+
+        # ใส่ข้อมูลให้ combobox
+        edit_gender.addItems(['ชาย','หญิง'])
+        edit_level.addItems(['ระหว่างพิจารณาคดี','เยี่ยม','ดีมาก','ดี','กลาง','ปรับปรุง','ปรับปรุงมาก'])
+        edit_type.addItems(['ผู้ต้องขัง','ผู้ต้องกักขัง'])
+        edit_dan.addItems(['รจช','7','6','5','4','3','2','1'])
+        edit_status.addItems(['อยู่', 'ไม่อยู่'])
+        edit_disciplinary.addItems(['ไม่มี', 'ผิดวินัย'])
+
+        # ขนาด field
+        field_width = 300
+        edit_id.setFixedWidth(field_width)
+        edit_gender.setFixedWidth(field_width)
+        edit_f_name.setFixedWidth(field_width)
+        edit_l_name.setFixedWidth(field_width)
+        edit_lawsuit.setFixedHeight(190)
+        edit_lawsuit.setFixedWidth(field_width)
+        edit_level.setFixedWidth(field_width)
+        edit_dan.setFixedWidth(field_width)
+        edit_type.setFixedWidth(field_width)
+        edit_status.setFixedWidth(field_width)
+        edit_disciplinary.setFixedWidth(field_width)
+
+        # form
+        # form.addItem(QSpacerItem(0,12))
+        form.addRow('รหัสประจำตัว :', edit_id)
+        form.addRow('เพศ :', edit_gender)
+        form.addRow('ชื่อ : ', edit_f_name)
+        form.addRow('สกุล : ', edit_l_name)
+        form.addRow('คดี : ', edit_lawsuit)
+        form.addRow('ชั้น : ', edit_level)
+        form.addRow('แดน : ', edit_dan)
+        form.addRow('ประเภท : ', edit_type)
+        form.addRow('สถานะ : ', edit_status)
+        form.addRow('ผิดวินัย : ', edit_disciplinary)
+
+        # ปุ่มกึ่งกลาง
+        btn_layout = QHBoxLayout()
+        btn_layout.setContentsMargins(20, 0, 20, 0)
+        btn_layout.setSpacing(24)
+        btn_layout.addStretch(1)
+        btn_layout.addWidget(btn_save)
+        btn_layout.addWidget(btn_close)
+        btn_layout.addStretch(1)
+        form.addRow(btn_layout)
+        form.addItem(QSpacerItem(0, 12, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding))
+
         h_layout.addLayout(form)
         layout.addLayout(h_layout)
+
+        btn_close.clicked.connect(lambda:self.close())
+        btn_save.clicked.connect(lambda: save_edit_data_prisoner_to_db())
+
+        edit_id.setText(str(pri_id))
+        edit_gender.setCurrentIndex(edit_gender.findText(pri_gender))
+        edit_f_name.setText(pri_fname)
+        edit_l_name.setText(pri_lname)
+        edit_lawsuit.setPlainText(pri_lawsuit)
+        edit_level.setCurrentIndex(edit_level.findText(pri_level))
+        edit_dan.setCurrentIndex(edit_dan.findText(pri_dan))
+        edit_type.setCurrentIndex(edit_type.findText(pri_type))
+        edit_status.setCurrentIndex(edit_status.findText(pri_status))
+        if not pri_disciplinary or str(pri_disciplinary).strip().lower() in ["none", "null", ""]:
+            edit_disciplinary.setCurrentIndex(edit_disciplinary.findText('ไม่มี'))
+        else:
+            edit_disciplinary.setCurrentIndex(edit_disciplinary.findText(str(pri_disciplinary)))
+        edit_gender.currentTextChanged.connect(update_dan_options)
+

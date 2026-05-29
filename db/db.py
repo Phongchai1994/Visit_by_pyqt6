@@ -195,17 +195,28 @@ class POSTGRESQL():
             return rows
 
     @log_db_exceptions
-    def insert_prisoner(self, prisoner_id, sex, f_name, l_name, lawsuit, level, dan, type_, status):
+    def insert_and_update_prisoner(self, prisoner_id, sex, f_name, l_name, lawsuit, level, dan, type_, status, disciplinary = None):
         """
-        เพิ่มข้อมูลผู้ต้องขัง
+        เพิ่มข้อมูลผู้ต้องขัง ถ้ามีอยู่แล้วให้ update
         """
         with self.conn.cursor() as cur:
             cur.execute(
                 """
                 INSERT INTO prisoners_(
-                    prisoner_id, sex, f_name, l_name, lawsuit, level, dan, type, status
-                )VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s)
-                """,(prisoner_id, sex, f_name, l_name, lawsuit, level, dan, type_, status)
+                    prisoner_id, sex, f_name, l_name, lawsuit, level, dan, type, status, disciplinary
+                )VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s ,%s)
+                ON CONFLICT (prisoner_id) DO UPDATE SET
+                    sex = EXCLUDED.sex,
+                    f_name = EXCLUDED.f_name,
+                    l_name = EXCLUDED.l_name,
+                    lawsuit = EXCLUDED.lawsuit,
+                    level = EXCLUDED.level,
+                    dan = EXCLUDED.dan,
+                    type = EXCLUDED.type,
+                    status = EXCLUDED.status,
+                    disciplinary = EXCLUDED.disciplinary
+
+                """,(prisoner_id, sex, f_name, l_name, lawsuit, level, dan, type_, status, disciplinary)
             )
         return True
 
