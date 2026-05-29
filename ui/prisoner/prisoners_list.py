@@ -131,7 +131,6 @@ class Prisoners_list(QWidget):
             'สถานะ': [],
             'วินัย': []
         }
-        self.search_text = ''
         self.create_filter_ui(main_layout)
         self.load_prisoners()
         self.apply_filters()

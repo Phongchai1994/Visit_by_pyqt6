@@ -133,7 +133,7 @@ class List_popup(QDialog):
             try:
                 thai_id = read_id_card()
                 relative_id = thai_id['cid']
-                check_id_in_db(id_card_num=relative_id)
+                check_id_in_db(id_card_num=relative_id ,thai_id=thai_id)
 
             except Exception as e:
                 AlertBox.error(self, 'การอ่านบัตรฯ', 'ตรวจสอบเครื่องอ่านบัตรฯ')
@@ -145,7 +145,7 @@ class List_popup(QDialog):
                 )
                 print(f'ปัญหาการอ่านบัตร {e}')
 
-        def check_id_in_db(id_card_num = None):
+        def check_id_in_db(id_card_num = None, thai_id = None):
             '''
                 เอาเลขบัตรไปตรวจสอบใน ฐานข้อมูล
             '''
@@ -159,8 +159,15 @@ class List_popup(QDialog):
                 self.input_address.setText(str(rel_data[4]))
                 self.input_tel.setText(str(rel_data[5]))
                 self.input_id_card.setReadOnly(True)
+            elif thai_id:
+                self.input_id_card.setText(str(thai_id['cid']))
+                self.input_title.setEditText(str(thai_id['title']))
+                self.input_fname.setText(str(thai_id['firstname']))
+                self.input_lname.setText(str(thai_id['lastname']))
+                self.input_address.setText(str(thai_id['address']))
+                self.input_id_card.setReadOnly(True)
             else:
-                AlertBox.error(self, 'ไม่พบข้อมูล', 'ไม่พบข้อมูลญาติในระบบ โปรดป้อนข้อมูลด้วยตนเอง')
+                AlertBox.warning(self, title='ไม่พบข้อมูล' ,message='ไม่พบข้อมูล')
             
         
         def save_relative_relation_to_db(prisoner):

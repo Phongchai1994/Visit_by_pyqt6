@@ -18,6 +18,7 @@ from ui.menu_frame import MENU_FRAME
 from ui.dashboard.dashboard_widget import Dashboard_Widget
 from ui.prisoner.register_prisoner import Prisoner_register_widget
 from ui.prisoner.prisoners_list import Prisoners_list
+from ui.relative.relative_list import Relative_list
 from utils.resource import Resource_Helper
 
 import sys
@@ -41,6 +42,7 @@ class MAINWINDOW(QMainWindow):
         self.menu.btn_summery.clicked.connect(self.show_dashboard)
         self.menu.btn_prisoner_register.clicked.connect(self.show_prisoner_register)
         self.menu.btn_prisoners_list.clicked.connect(self.show_prisoners_list)
+        self.menu.btn_relatives_list.clicked.connect(self.show_relatives_list)
         
         # สร้าง QFrame สำหรับ main content
         self.main_content = QFrame()
@@ -84,6 +86,13 @@ class MAINWINDOW(QMainWindow):
             if widget:
                 widget.setParent(None)
         self.main_content.layout().addWidget(Prisoners_list())
+
+    def show_relatives_list(self):
+        for i in reversed(range(self.main_content.layout().count())):
+            widget = self.main_content.layout().itemAt(i).widget()
+            if widget:
+                widget.setParent(None)
+        self.main_content.layout().addWidget(Relative_list())
 
     def init_menu(self):
         menubar = self.menuBar()

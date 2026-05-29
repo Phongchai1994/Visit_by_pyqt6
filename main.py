@@ -13,7 +13,6 @@ from PyQt6.QtGui import (
 from PyQt6.QtCore import Qt, QCoreApplication
 from utils.resource import Resource_Helper
 
-
 if __name__ == '__main__':
     try: 
         app = QApplication(sys.argv)
