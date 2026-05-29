@@ -279,51 +279,51 @@ QTableView#Qtable_View::indicator:unchecked{
     border: 1px solid #1976d2;
 }
 
-/*########   class Prisoner_list_popup ###########*/
+/*########   class list_popup ###########*/
 
-QDialog#prisoner_list_popup QLabel#header_label_edit {
+QDialog#list_popup QLabel#header_label_edit {
     font-size: 20px; 
     font-weight: bold; 
     color: #727002; 
     margin-bottom: 8px;
 }
 
-QDialog#prisoner_list_popup QLabel#Qlabel_header {
+QDialog#list_popup QLabel#Qlabel_header {
     font-size: 20px; 
     font-weight: bold; 
     color: #1a237e; 
     margin-bottom: 8px;
 }
-QDialog#prisoner_list_popup QLabel#Qlabel_line{
+QDialog#list_popup QLabel#Qlabel_line{
     background: #b0bec5; 
     margin-bottom: 8px;
 }
 
-QDialog#prisoner_list_popup QLabel#Qlabel_lbl_key{
+QDialog#list_popup QLabel#Qlabel_lbl_key{
     color: #37474f; 
     font-weight: bold;
 }
 
-QDialog#prisoner_list_popup QLabel#Qlabel_lbl_val{
+QDialog#list_popup QLabel#Qlabel_lbl_val{
     color: #263238;
 }
 
-QDialog#prisoner_list_popup QLabel#Qlabel_rel_header{
+QDialog#list_popup QLabel#Qlabel_rel_header{
     font-size: 16px; 
     font-weight: bold; 
     color: #1565c0; 
     margin-top: 12px;
 }
 
-QDialog#prisoner_list_popup QLabel#Qlabel_lbl_rel{
+QDialog#list_popup QLabel#Qlabel_lbl_rel{
     color: #37474f; 
     margin-bottom: 2px;
 }
 
-QDialog#prisoner_list_popup QLabel#Qlabel_lbl_none{
+QDialog#list_popup QLabel#Qlabel_lbl_none{
     color: #b71c1c;
 }
-QDialog#prisoner_list_popup QPushButton#btn_close{
+QDialog#list_popup QPushButton#btn_close{
     background-color: #e0e0e0;      /* เทาอ่อน */
     color: #333;
     border: 2px solid #bdbdbd;
@@ -332,18 +332,18 @@ QDialog#prisoner_list_popup QPushButton#btn_close{
     font-weight: bold;
     font-size: 15px;
 }
-QDialog#prisoner_list_popup QPushButton#btn_close:hover {
+QDialog#list_popup QPushButton#btn_close:hover {
     background-color: #bdbdbd;
     border-color: #9e9e9e;
     color: #1a237e;
 }
-QDialog#prisoner_list_popup QPushButton#btn_close:pressed {
+QDialog#list_popup QPushButton#btn_close:pressed {
     background-color: #9e9e9e;
     border-color: #757575;
     color: #fff;
 }
 
-QDialog#prisoner_list_popup QPushButton#btn_save {
+QDialog#list_popup QPushButton#btn_save {
     background-color: #1976d2;      /* น้ำเงินสุภาพ */
     color: #fff;
     border: 2px solid #1565c0;
@@ -354,19 +354,19 @@ QDialog#prisoner_list_popup QPushButton#btn_save {
     font-weight: bold;
 }
 
-QDialog#prisoner_list_popup QPushButton#btn_save:hover {
+QDialog#list_popup QPushButton#btn_save:hover {
     background-color: #1565c0;
     border-color: #1976d2;
     color: #e3f2fd;
 }
 
-QDialog#prisoner_list_popup QPushButton#btn_save:pressed {
+QDialog#list_popup QPushButton#btn_save:pressed {
     background-color: #0d47a1;
     border-color: #1565c0;
     color: #b0bec5;
 }
 
-QDialog#prisoner_list_popup QPushButton#btn_delete {
+QDialog#list_popup QPushButton#btn_delete {
     background-color: #8d1f1f;
     color: #ffffff;
     border: 1px solid #6f1616;
@@ -378,12 +378,12 @@ QDialog#prisoner_list_popup QPushButton#btn_delete {
     min-width: 100px;
 }
 
-QDialog#prisoner_list_popup QPushButton#btn_delete:hover {
+QDialog#list_popup QPushButton#btn_delete:hover {
     background-color: #a12626;
     border-color: #821c1c;
 }
 
-QDialog#prisoner_list_popup QPushButton#btn_delete:pressed {
+QDialog#list_popup QPushButton#btn_delete:pressed {
     background-color: #651515;
     border-color: #4f1010;
 }
@@ -520,7 +520,15 @@ QWidget#main_prisoner_list_widget QGroupBox{
 
 /*########   class prisoners_list_popup ###########*/
 
-QDialog#prisoner_list_popup QLabel#header_label {
+QDialog#list_popup QLabel#time_status_update {
+    font-family: 'Sarabun', Arial, sans-serif;
+    font-size: 12px; 
+    font-weight: bold; 
+    color: #020203; 
+    margin-bottom: 8px;
+}
+
+QDialog#list_popup QLabel#header_label {
     font-family: 'Sarabun', Arial, sans-serif;
     font-size: 18px; 
     font-weight: bold; 
@@ -528,34 +536,34 @@ QDialog#prisoner_list_popup QLabel#header_label {
     margin-bottom: 8px;
 }
 
-QDialog#prisoner_list_popup QLabel#Qlabel_header {
+QDialog#list_popup QLabel#Qlabel_header {
     font-size: 20px; 
     font-weight: bold; 
     color: #1a237e; 
     margin-bottom: 8px;
 }
-QDialog#prisoner_list_popup QLabel#Qlabel_line {
+QDialog#list_popup QLabel#Qlabel_line {
     background: #b0bec5; 
     margin-bottom: 8px;
 }
-QDialog#prisoner_list_popup QLabel#Qlabel_lbl_key{
+QDialog#list_popup QLabel#Qlabel_lbl_key{
     color: #37474f; 
     font-weight: bold;
 }
-QDialog#prisoner_list_popup QLabel#Qlabel_lbl_val{
+QDialog#list_popup QLabel#Qlabel_lbl_val{
     color: #263238;
 }
-QDialog#prisoner_list_popup QLabel#Qlabel_rel_header{
+QDialog#list_popup QLabel#Qlabel_rel_header{
     font-size: 16px; 
     font-weight: bold; 
     color: #1565c0; 
     margin-top: 12px;
 }
-QDialog#prisoner_list_popup QLabel#Qlabel_lbl_rel{
+QDialog#list_popup QLabel#Qlabel_lbl_rel{
     color: #37474f; 
     margin-bottom: 2px;
 }
-QDialog#prisoner_list_popup QLabel#Qlabel_lbl_none{
+QDialog#list_popup QLabel#Qlabel_lbl_none{
     color: #b71c1c;
 }
 
@@ -629,7 +637,7 @@ QPushButton#Qpush_btn_close:pressed {
 
 
 
-QWidget#prisoner_list_popup QComboBox {
+QWidget#list_popup QComboBox {
         background: #f5f6fa;
         border: 1.5px solid #e0e0e0;
         border-radius: 6px;
@@ -637,11 +645,11 @@ QWidget#prisoner_list_popup QComboBox {
         color: #222;
         font-size: 14px;
 }
-QWidget#prisoner_list_popup QComboBox:focus {
+QWidget#list_popup QComboBox:focus {
     border: 1.5px solid #5e81f4;
     background: #fff;
 }
-QWidget#prisoner_list_popup QComboBox::drop-down {
+QWidget#list_popup QComboBox::drop-down {
     subcontrol-origin: padding;
     subcontrol-position: top right;
     width: 24px;
@@ -650,12 +658,12 @@ QWidget#prisoner_list_popup QComboBox::drop-down {
     border-top-right-radius: 6px;
     border-bottom-right-radius: 6px;
 }
-QWidget#prisoner_list_popup QComboBox::down-arrow {
+QWidget#list_popup QComboBox::down-arrow {
     image: url(:/qt-project.org/styles/commonstyle/images/arrowdown-16.png);
     width: 16px;
     height: 16px;
 }
-QWidget#prisoner_list_popup QComboBox QAbstractItemView {
+QWidget#list_popup QComboBox QAbstractItemView {
     background: #fff;
     border: 1px solid #e0e0e0;
     selection-background-color: #5e81f4;

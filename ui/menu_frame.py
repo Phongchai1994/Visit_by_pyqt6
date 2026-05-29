@@ -4,7 +4,7 @@ from PyQt6.QtCore import Qt
 
 
 class MENU_FRAME(QFrame):
-    def __init__(self, user_role='user', parent=None):
+    def __init__(self, user_role, parent=None):
         super().__init__(parent)
 
         self.user_role = user_role
@@ -66,16 +66,19 @@ class MENU_FRAME(QFrame):
 
 
     def setup_permissions(self):
-        if self.user_role == 'admin':
+        if self.user_role == 'admin' or self.user_role == 'super_admin':
+            print('admin & super_admin')
             pass
-        if self.user_role == 'user':
+        elif self.user_role == 'user':
+            print('user')
             self.lb_manage_relative.hide()
             self.btn_relatives_list.hide()
             self.btn_register_fingerprint.hide()
             self.lb_book_visit.hide()
             self.btn_book_visit.hide()
             self.btn_book_by_id_card.hide()
-        if self.user_role == 'user_visit':
+        elif self.user_role == 'visit':
+            print('visit')
             self.lb_dashboard.hide()
             self.btn_summery.hide()
             self.lb_manage_prisoner.hide()
@@ -89,3 +92,5 @@ class MENU_FRAME(QFrame):
             self.btn_daily_report.hide()
             self.btn_monthly_report.hide()
             self.btn_special_report.hide()
+        else:
+            return

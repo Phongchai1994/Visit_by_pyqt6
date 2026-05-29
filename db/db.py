@@ -214,7 +214,8 @@ class POSTGRESQL():
                     dan = EXCLUDED.dan,
                     type = EXCLUDED.type,
                     status = EXCLUDED.status,
-                    disciplinary = EXCLUDED.disciplinary
+                    disciplinary = EXCLUDED.disciplinary,
+                    "timestamp" = CURRENT_TIMESTAMP
 
                 """,(prisoner_id, sex, f_name, l_name, lawsuit, level, dan, type_, status, disciplinary)
             )
@@ -226,14 +227,14 @@ class POSTGRESQL():
         ดึงข้อมูล username password
         '''
         with self.conn.cursor() as cur:
-            cur.execute("SELECT password FROM users WHERE username=%s", (username,))
+            cur.execute("SELECT password, user_type, fullname FROM users WHERE username=%s", (username,))
             row = cur.fetchone()
             if row:
                 db_password = row[0].tobytes()
                 input_hash = hashlib.sha256(password.encode()).digest()
-                return db_password == input_hash
-            else:
-                return False
+                if db_password == input_hash:
+                    return True, row[1], row[2]
+            return False, None, None
 
     @log_db_exceptions
     def get_relatives(self, prisoner_id):
@@ -253,34 +254,31 @@ class POSTGRESQL():
             return cur.fetchall()
 
     @log_db_exceptions
-    def insert_relative_and_relation(self,relative_id, prisoner_id, title, f_name, l_name, address, tel, relation, user_insert = None):
+    def insert_or_update_relative_and_relation(self,relative_id, prisoner_id, title, f_name, l_name, address, tel, relation, user_insert = None):
         '''
         เพิ่มข้อมูลญาติไปยัง db และความสัมพันธ์ไปยัง db\n
         ต้องการ relative_id, prisoner_id, title, f_name, l_name, address, tel, relation, user_insert = None
         
         '''
         with self.conn.cursor() as cur:
-            # ตรวจสอบว่ามี ข้อมูล relative อยู่หรือไม่ โดยใช้ id
             cur.execute(
                 '''
-                SELECT relative_id FROM relatives
-                WHERE relative_id = %s
-                ''', (relative_id,)
+                INSERT INTO relatives (relative_id, title, f_name, l_name, address, tel, is_active, user_insert)
+                VALUES (%s, %s, %s, %s, %s, %s, TRUE, %s)
+                ON CONFLICT (relative_id) DO UPDATE SET
+                    title = EXCLUDED.title,
+                    f_name = EXCLUDED.f_name,
+                    l_name = EXCLUDED.l_name,
+                    address = EXCLUDED.address,
+                    tel = EXCLUDED.tel,
+                    is_active = EXCLUDED.is_active,
+                    user_insert = EXCLUDED.user_insert,
+                    "timestamp" = CURRENT_TIMESTAMP
+                RETURNING relative_id
+                ''',
+                (relative_id, title, f_name, l_name, address, tel, user_insert)
             )
-            row = cur.fetchone()
-            if row:
-                rel_id = row[0]
-                print(f'rel id = {rel_id}')
-            else:
-                cur.execute(
-                    '''
-                    INSERT INTO relatives (title, f_name, l_name, address, tel, is_active, user_insert)
-                    VALUES (%s, %s, %s, %s, %s, TRUE, %s)
-                    RETURNING relative_id
-                    ''',
-                    (title, f_name, l_name, address, tel, user_insert)
-                )
-                rel_id = cur.fetchone()[0]
+            rel_id = cur.fetchone()[0]
 
             # เพิ่มข้อมูลไปยัง reltions
             cur.execute(
@@ -291,6 +289,7 @@ class POSTGRESQL():
                 DO UPDATE SET
                     relation = EXCLUDED.relation,
                     is_active = TRUE,
+                    "timestamp" = CURRENT_TIMESTAMP,
                     user_insert = EXCLUDED.user_insert
                 ''',
                 (prisoner_id, rel_id, relation, user_insert)
@@ -344,8 +343,8 @@ class POSTGRESQL():
 
 # if __name__ == "__main__":
 #     db = POSTGRESQL()
-#     result = db.updete_relation(str(0), str(1560100345135), False)
-#     print(result)
+#     i,x = db.check_db_login('admin','066986')
+#     print(i,x)
 #     # for rel in result:
 #     #     print('คนที่')
 #     #     print(rel)

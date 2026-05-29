@@ -3,7 +3,6 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QLabel,
     QTableView,
-    QHBoxLayout,
     QSpacerItem,
     QSizePolicy,
     QHeaderView,
@@ -11,22 +10,16 @@ from PyQt6.QtWidgets import (
     QCheckBox,
     QGridLayout,
     QLineEdit,
-    QMenu,
-    QDialog,
-    QFormLayout,
-    QPushButton,
-    QComboBox, 
-    QTextEdit,
-    QFrame
+    QMenu
 )
 
-from PyQt6.QtCore import Qt, QAbstractTableModel, QEvent, QRegularExpression
-from PyQt6.QtGui import QBrush, QColor, QAction, QRegularExpressionValidator
+from PyQt6.QtCore import Qt, QAbstractTableModel
+from PyQt6.QtGui import QBrush, QColor, QAction
 
 from db.db import POSTGRESQL
 from db.db import log_db_exceptions
 from ui.alert_box import AlertBox
-from ui.prisoner.prisoner_list_popup import Prisoner_list_popup
+from ui.list_popup import List_popup
 
 class PrisonersTableModel(QAbstractTableModel):
     def __init__(self, data, headers):
@@ -313,6 +306,7 @@ class Prisoners_list(QWidget):
 
         self.layout().addWidget(self.table_view)
         self.table_view.apply_column_widths()
+        self.apply_filters()
 
     def create_table_context_menu(self, position):
         index = self.table_view.indexAt(position)
@@ -386,27 +380,27 @@ class Prisoners_list(QWidget):
 
     def show_detail(self, row):
         data = self.table_model._data[row]
-        dialog_popup = Prisoner_list_popup(self)
+        dialog_popup = List_popup(self)
         dialog_popup.show_detail(data, title=f'รายละเอียด ราย {data[2]} {data[3]}')
         dialog_popup.exec()
 
     def add_relative(self, row):
         data = self.table_model._data[row]
-        dialog_popup = Prisoner_list_popup(self)
+        dialog_popup = List_popup(self)
         dialog_popup.show_add_relative_form(data, title=f'เพิ่มข้อมูลญาติ ราย {data[2]} {data[3]}')
         dialog_popup.exec()
         self.load_prisoners()
 
     def delete_relative(self, row):
         data = self.table_model._data[row]
-        dialog_popup = Prisoner_list_popup(self)
+        dialog_popup = List_popup(self)
         dialog_popup.show_delete_relative_form(data, title=f'ลบข้อมูลญาติ ราย {data[2]} {data[3]}')
         dialog_popup.exec()
         self.load_prisoners()
 
     def edit_prisoner(self, row):
         data = self.table_model._data[row]
-        dialog_popup = Prisoner_list_popup(self)
+        dialog_popup = List_popup(self)
         dialog_popup.edit_data_prisoner(data, title=f'แก้ไขข้อมูลผู้ต้องขัง ราย {data[2]} {data[3]}')
         dialog_popup.exec()
         self.load_prisoners()

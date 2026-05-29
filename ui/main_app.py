@@ -23,7 +23,7 @@ from utils.resource import Resource_Helper
 import sys
 
 class MAINWINDOW(QMainWindow):
-    def __init__(self,user_role='user'):
+    def __init__(self,user_role):
         super().__init__()
         self.setWindowTitle('MAIN WINDOW')
         self.setGeometry(200, 200, 720, 480)

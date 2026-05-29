@@ -1,17 +1,10 @@
 from PyQt6.QtWidgets import (
-    QWidget,
     QVBoxLayout,
     QLabel,
-    QTableView,
     QHBoxLayout,
     QSpacerItem,
     QSizePolicy,
-    QHeaderView,
-    QGroupBox,
-    QCheckBox,
-    QGridLayout,
     QLineEdit,
-    QMenu,
     QDialog,
     QFormLayout,
     QPushButton,
@@ -20,9 +13,8 @@ from PyQt6.QtWidgets import (
     QFrame
 )
 
-from PyQt6.QtCore import Qt, QAbstractTableModel, QEvent, QRegularExpression
-from PyQt6.QtGui import QBrush, QColor, QAction, QRegularExpressionValidator
-from db.db import log_db_exceptions
+from PyQt6.QtCore import Qt, QRegularExpression
+from PyQt6.QtGui import QRegularExpressionValidator
 
 from devices.card_reader import ThaiIDReader
 from db.db import POSTGRESQL
@@ -34,13 +26,13 @@ import os
 import traceback
 import inspect
 
-class Prisoner_list_popup(QDialog):
+class List_popup(QDialog):
     def __init__(self, parent=None,):
         super().__init__(parent)
         self.setModal(True)
         self.setMinimumWidth(420)
         self.db = POSTGRESQL()
-        self.setObjectName('prisoner_list_popup')
+        self.setObjectName('list_popup')
 
     def show_detail(self, prisoner, title):
         try:
@@ -157,8 +149,8 @@ class Prisoner_list_popup(QDialog):
             '''
                 เอาเลขบัตรไปตรวจสอบใน ฐานข้อมูล
             '''
+            
             rel_data = self.db.get_relative_data(id_card_num)
-            print(rel_data)
             if rel_data:
                 self.input_id_card.setText(str(rel_data[0]))
                 self.input_title.setEditText(str(rel_data[1]))
@@ -166,8 +158,10 @@ class Prisoner_list_popup(QDialog):
                 self.input_lname.setText(str(rel_data[3]))
                 self.input_address.setText(str(rel_data[4]))
                 self.input_tel.setText(str(rel_data[5]))
+                self.input_id_card.setReadOnly(True)
             else:
                 AlertBox.error(self, 'ไม่พบข้อมูล', 'ไม่พบข้อมูลญาติในระบบ โปรดป้อนข้อมูลด้วยตนเอง')
+            
         
         def save_relative_relation_to_db(prisoner):
             '''
@@ -189,7 +183,7 @@ class Prisoner_list_popup(QDialog):
 
             from user.login import USER_NAME
             # print(self.input_id_card.text())
-            result_insert_data = self.db.insert_relative_and_relation(
+            result_insert_data = self.db.insert_or_update_relative_and_relation(
                 relative_id = relative_id,
                 prisoner_id = prisoner_id,
                 title = title,
@@ -325,7 +319,7 @@ class Prisoner_list_popup(QDialog):
             layout.addWidget(lbl_none)
 
     def edit_data_prisoner(self, prisoner, title):
-
+        print(prisoner)
         def update_dan_options():
             gender = edit_gender.currentText()
             if gender == 'หญิง':
@@ -361,8 +355,6 @@ class Prisoner_list_popup(QDialog):
                 self.close()
             else:
                 AlertBox.warning(self, 'แก้ไขข้อมูล', 'แก้ไขข้อมูลไม่สำเร็จ')
-
-
 
         # variable
         pri_id = prisoner[0]
@@ -401,6 +393,8 @@ class Prisoner_list_popup(QDialog):
         edit_type = QComboBox()
         edit_status = QComboBox()
         edit_disciplinary = QComboBox()
+        time_status_update = QLabel()
+        time_status_update.setObjectName('time_status_update')
         btn_save = QPushButton('บันทึกข้อมูล')
         btn_save.setObjectName('btn_save')
         btn_close = QPushButton('ปิด')
@@ -447,6 +441,8 @@ class Prisoner_list_popup(QDialog):
         form.addRow('ประเภท : ', edit_type)
         form.addRow('สถานะ : ', edit_status)
         form.addRow('ผิดวินัย : ', edit_disciplinary)
+        form.addRow('', time_status_update)
+
 
         # ปุ่มกึ่งกลาง
         btn_layout = QHBoxLayout()
@@ -465,6 +461,19 @@ class Prisoner_list_popup(QDialog):
         btn_close.clicked.connect(lambda:self.close())
         btn_save.clicked.connect(lambda: save_edit_data_prisoner_to_db())
 
+
+        dt = datetime.strptime(str(prisoner[10]).split('.')[0], "%Y-%m-%d %H:%M:%S")
+        months = [
+            "", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+            "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+        ]
+        day = dt.day
+        month = months[dt.month]
+        year = dt.year
+        hour = dt.hour
+        minute = dt.minute
+        time_status = f"{day} {month} {year} เวลา {hour:02d}:{minute:02d} น."
+
         edit_id.setText(str(pri_id))
         edit_gender.setCurrentIndex(edit_gender.findText(pri_gender))
         edit_f_name.setText(pri_fname)
@@ -474,6 +483,7 @@ class Prisoner_list_popup(QDialog):
         edit_dan.setCurrentIndex(edit_dan.findText(pri_dan))
         edit_type.setCurrentIndex(edit_type.findText(pri_type))
         edit_status.setCurrentIndex(edit_status.findText(pri_status))
+        time_status_update.setText('ปรับปรุงข้อมูลล่าสุด : '+time_status)
         if not pri_disciplinary or str(pri_disciplinary).strip().lower() in ["none", "null", ""]:
             edit_disciplinary.setCurrentIndex(edit_disciplinary.findText('ไม่มี'))
         else:
