@@ -193,6 +193,14 @@ class POSTGRESQL():
             cur.execute('SELECT * FROM prisoners_')
             rows = cur.fetchall()
             return rows
+        
+    def get_all_relatives_list(self):
+        '''
+        ดึงข้อมูลญาติ ใน db'''
+        with self.conn.cursor() as cur: 
+            cur.execute('SELECT relative_id, title ,f_name, l_name, address, tel, fingerprint IS NOT NULL AS has_fingerprint, is_active FROM relatives')
+            rows = cur.fetchall()
+            return rows
 
     @log_db_exceptions
     def insert_and_update_prisoner(self, prisoner_id, sex, f_name, l_name, lawsuit, level, dan, type_, status, disciplinary = None):
