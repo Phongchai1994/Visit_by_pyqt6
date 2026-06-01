@@ -37,7 +37,23 @@ class POSTGRESQL():
     def create_tables_if_not_exist(self):
         commands = [
             """
-            CREATE TABLE IF NOT EXISTS public.prisoners_ (
+            CREATE TABLE IF NOT EXISTS public.relative_fingerprints (
+                id serial PRIMARY KEY,
+                relative_id bigint NOT NULL,
+                finger_name text NOT NULL,
+                fingerprint bytea NOT NULL,
+                is_active boolean DEFAULT true,
+                created_at timestamp DEFAULT CURRENT_TIMESTAMP,
+                updated_at timestamp DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT relative_fingerprints_relative_id_fkey
+                    FOREIGN KEY (relative_id)
+                    REFERENCES public.relatives(relative_id)
+                    ON DELETE RESTRICT,
+                CONSTRAINT relative_fingerprints_unique
+                    UNIQUE (relative_id, finger_name)
+            );
+
+            CREATE TABLE IF NOT EXISTS public.prisoners (
                 prisoner_id bigint PRIMARY KEY,
                 sex text NOT NULL,
                 f_name text NOT NULL,
@@ -117,7 +133,7 @@ class POSTGRESQL():
                 relation text NOT NULL,
                 is_active boolean DEFAULT true,
                 "timestamp" timestamp DEFAULT CURRENT_TIMESTAMP,
-                CONSTRAINT relations_prisoner_id_fkey FOREIGN KEY (prisoner_id) REFERENCES public.prisoners_(prisoner_id) ON DELETE RESTRICT,
+                CONSTRAINT relations_prisoner_id_fkey FOREIGN KEY (prisoner_id) REFERENCES public.prisoners(prisoner_id) ON DELETE RESTRICT,
                 CONSTRAINT relations_relative_id_fkey FOREIGN KEY (relative_id) REFERENCES public.relatives(relative_id) ON DELETE RESTRICT
             )
             """,
@@ -135,7 +151,7 @@ class POSTGRESQL():
                 relative_id_5 bigint,
                 channel integer,
                 "desc" text,
-                CONSTRAINT visit_history_prisoner_id_fkey FOREIGN KEY (prisoner_id) REFERENCES public.prisoners_(prisoner_id) ON DELETE RESTRICT
+                CONSTRAINT visit_history_prisoner_id_fkey FOREIGN KEY (prisoner_id) REFERENCES public.prisoners(prisoner_id) ON DELETE RESTRICT
             )
             """,
             """
@@ -151,7 +167,7 @@ class POSTGRESQL():
                 relative_id_4 bigint,
                 relative_id_5 bigint,
                 channel integer,
-                CONSTRAINT visit_spacial_prisoner_id_fkey FOREIGN KEY (prisoner_id) REFERENCES public.prisoners_(prisoner_id) ON DELETE RESTRICT
+                CONSTRAINT visit_spacial_prisoner_id_fkey FOREIGN KEY (prisoner_id) REFERENCES public.prisoners(prisoner_id) ON DELETE RESTRICT
             )
             """,
             """
@@ -168,7 +184,7 @@ class POSTGRESQL():
                 relative_id_5 bigint,
                 channel integer,
                 visit_status text DEFAULT 'pending',
-                CONSTRAINT visits_prisoner_id_fkey FOREIGN KEY (prisoner_id) REFERENCES public.prisoners_(prisoner_id) ON DELETE RESTRICT
+                CONSTRAINT visits_prisoner_id_fkey FOREIGN KEY (prisoner_id) REFERENCES public.prisoners(prisoner_id) ON DELETE RESTRICT
             )
             """
         ]
@@ -190,15 +206,16 @@ class POSTGRESQL():
         ดึงข้อมูลผู้ต้องขังใน DB
         '''
         with self.conn.cursor() as cur:
-            cur.execute('SELECT * FROM prisoners_')
+            cur.execute('SELECT * FROM prisoners')
             rows = cur.fetchall()
             return rows
-        
+
+    @log_db_exceptions
     def get_all_relatives_list(self):
         '''
         ดึงข้อมูลญาติ ใน db'''
         with self.conn.cursor() as cur: 
-            cur.execute('SELECT relative_id, title ,f_name, l_name, address, tel, fingerprint IS NOT NULL AS has_fingerprint, is_active FROM relatives')
+            cur.execute('SELECT relative_id, title ,f_name, l_name, address, tel, fingerprint IS NOT NULL AS has_fingerprint, is_active, timestamp FROM relatives')
             rows = cur.fetchall()
             return rows
 
@@ -210,7 +227,7 @@ class POSTGRESQL():
         with self.conn.cursor() as cur:
             cur.execute(
                 """
-                INSERT INTO prisoners_(
+                INSERT INTO prisoners(
                     prisoner_id, sex, f_name, l_name, lawsuit, level, dan, type, status, disciplinary
                 )VALUES(%s, %s, %s, %s, %s, %s, %s, %s, %s ,%s)
                 ON CONFLICT (prisoner_id) DO UPDATE SET
@@ -260,6 +277,20 @@ class POSTGRESQL():
                 (prisoner_id,)
             )
             return cur.fetchall()
+
+    @log_db_exceptions
+    def get_prisoners_from_relative_id(self, relative_id):
+        '''
+        ดึงข้อมูลผู้ต้องขัง จาก id ญาติ'''
+        with self.conn.cursor() as cur:
+            cur.execute(
+                '''
+                SELECT p.prisoner_id, p.f_name, p.l_name, p.level, p.dan, p.status, p.disciplinary, r.relation
+                FROM prisoners p
+                JOIN relations r ON p.prisoner_id = r.prisoner_id
+                WHERE r.relative_id = %s
+                ''',(relative_id,)
+            )
 
     @log_db_exceptions
     def insert_or_update_relative_and_relation(self,relative_id, prisoner_id, title, f_name, l_name, address, tel, relation, user_insert = None):
@@ -330,11 +361,14 @@ class POSTGRESQL():
             cur.execute(
                 '''
                 UPDATE relations
-                SET is_active = %s
+                SET 
+                    is_active = %s, 
+                    "timestamp" = CURRENT_TIMESTAMP
                 WHERE prisoner_id = %s AND relative_id = %s
                 ''',(is_active, prisoner_id, relative_id)
             )
             return True
+
 
     def log_error(self, function_name, error_message, extra_info=None):
         try:

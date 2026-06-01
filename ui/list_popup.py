@@ -34,7 +34,7 @@ class List_popup(QDialog):
         self.db = POSTGRESQL()
         self.setObjectName('list_popup')
 
-    def show_detail(self, prisoner, title):
+    def show_detail_prisoner(self, prisoner, title):
         try:
             data_relatives = self.db.get_relatives(prisoner_id=prisoner[0])
         except Exception as e:
@@ -496,4 +496,63 @@ class List_popup(QDialog):
         else:
             edit_disciplinary.setCurrentIndex(edit_disciplinary.findText(str(pri_disciplinary)))
         edit_gender.currentTextChanged.connect(update_dan_options)
+
+    def show_detail_relative(self, relative, title):
+        print(relative)
+        try:
+            data_relatives = self.db.get_prisoners_from_relative_id(relative_id=relative[0])
+        except Exception as e:
+            print("get_relatives error:", e)
+            data_relatives = []
+
+        self.setWindowTitle(title)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 18, 24, 18)
+        layout.setSpacing(12)
+
+        label_header = QLabel('รายละเอียดญาติ')
+        label_header.setObjectName('Qlabel_header')
+        layout.addWidget(label_header, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        # เส้นคั่น
+        line = QLabel()
+        line.setFixedHeight(2)
+        line.setObjectName('Qlabel_line')
+        layout.addWidget(line)
+
+        form = QFormLayout()
+        form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+        form.setFormAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        form.setHorizontalSpacing(18)
+        form.setVerticalSpacing(8)
+
+        form_header_label = ['เลขประจำตัว', 'คำนำหน้า', 'ชื่อ', 'สกุล', 'ที่อยุ่', 'เบอร์โทร', 'ลายนิ้วมือ', 'สถานะ', 'วันบันทึกข้อมูล']
+        for i, label in enumerate(form_header_label):
+            value = ''
+            if relative and i < len(relative) and relative[i] is not None:
+                value = str(relative[i])
+            lbl_key = QLabel(label + " :")
+            lbl_key.setObjectName('Qlabel_lbl_key')
+            lbl_val = QLabel(value)
+            lbl_val.setObjectName('Qlabel_lbl_val')
+            lbl_val.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            form.addRow(lbl_key, lbl_val)
+
+        layout.addLayout(form)
+
+        btn_close = QPushButton('ปิด')
+        btn_close.setObjectName('btn_close')
+        btn_close.clicked.connect(self.close)
+
+        layout.addWidget(btn_close, alignment=Qt.AlignmentFlag.AlignRight)
+
+
+
+
+
+
+
+
+
+
 

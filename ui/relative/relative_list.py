@@ -10,7 +10,8 @@ from PyQt6.QtWidgets import (
     QCheckBox,
     QGridLayout,
     QLineEdit,
-    QMenu
+    QMenu,
+    QFrame
 )
 
 from PyQt6.QtCore import Qt, QAbstractTableModel
@@ -54,7 +55,7 @@ class RelativesTabelModel(QAbstractTableModel):
             if not is_active:
                 return QBrush(QColor("#b0b0b0"))
             if not fp:
-                return QBrush(QColor("#140F55"))
+                return QBrush(QColor("#490505"))
 
         return None
     def headerData(self, section, orientation, role = Qt.ItemDataRole.DisplayRole):
@@ -80,10 +81,16 @@ class Relative_list(QWidget):
         title_label.setObjectName('relative_list_title_label')
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
+        title_line = QFrame()
+        title_line.setFrameShape(QFrame.Shape.HLine)
+        title_line.setFrameShadow(QFrame.Shadow.Sunken)
+        title_line.setStyleSheet("color: #000000; background: #000000;")
+        
         # layout
         vbox = QVBoxLayout()
         vbox.addItem(QSpacerItem(0, 12, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed))
         vbox.addWidget(title_label)
+        vbox.addWidget(title_line)
 
         main_layout.addLayout(vbox)
 
@@ -108,6 +115,7 @@ class Relative_list(QWidget):
         title_list = ["ชาย","หญิง","อื่น ๆ" ]
 
         title_group = QGroupBox('คำนำหน้าตามเพศ')
+        title_group.setMinimumWidth(200)
         self.title_checkbox = []
         title_layout = QGridLayout()
         title_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -121,6 +129,7 @@ class Relative_list(QWidget):
         filter_layout.addWidget(title_group, 0, 0)
 
         fp_group = QGroupBox('ลายนิ้วมือ')
+        fp_group.setMinimumWidth(200)
         fp_list = ['ลงทะเบียนแล้ว', 'ไม่ลงทะเบียน']
         self.fp_checkbox = []
         fp_layout = QGridLayout()
@@ -142,11 +151,14 @@ class Relative_list(QWidget):
         
         self.label_total = QLabel()
         self.label_total.setText("จำนวนทั้งหมด : 0 ราย")
+        self.label_total.setAlignment(Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignRight)
         search_layout.addWidget(self.label_total, 1, 0)
 
         search_group.setLayout(search_layout)
         filter_layout.addWidget(search_group, 0, 2)
-
+        # filter_layout.setColumnStretch(0, 1)
+        # filter_layout.setColumnStretch(1, 1)
+        # filter_layout.setColumnStretch(2, 1)
         layout.addLayout(filter_layout)
 
     def apply_filters(self):
@@ -194,13 +206,10 @@ class Relative_list(QWidget):
 
 
     def load_relatives(self):
-        # ลบ view เก่าถ้ามี
-        if getattr(self, 'table_view', None) is not None:
-            try:
-                self.layout().removeWidget(self.table_vies)
-                self.table_vies.deleteLater()
-            except Exception:
-                pass
+        if self.table_view is not None:
+            self.layout().removeWidget(self.table_view)
+            self.table_view.deleteLater()
+            self.table_view = None
 
         relatives = self.db.get_all_relatives_list()
         if not relatives:
@@ -225,14 +234,82 @@ class Relative_list(QWidget):
         header.setSectionResizeMode(QHeaderView.ResizeMode.Fixed)
         header.setStretchLastSection(False)
 
+        self.table_view.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
+        self.table_view.customContextMenuRequested.connect(self.create_table_context_menu)
+
         self.layout().addWidget(self.table_view)
         self.table_view.apply_column_widths()
         self.apply_filters()
 
 
+    def create_table_context_menu(self, position):
+        index = self.table_view.indexAt(position)
+
+        if not index.isValid():
+            return
+        
+        menu = QMenu()
+        menu.setObjectName('menu_relative_list')
+
+        # 
+        row_data = self.table_model._data[index.row()]
+        relative_name = f'{row_data[1]}{row_data[2]} {row_data[2]}'
+
+        # 
+        name_action = QAction(relative_name, self)
+        name_action.setEnabled(False)
+        menu.addAction(name_action)
+        menu.addSeparator()
+
+        action_detail = QAction('ดูรายละเอียด', self)
+        action_regis_fp = QAction('ลงทะเบียนลายนิ้วมือ', self)
+
+        action_detail.triggered.connect(lambda: self.show_detail_relative(index.row()))
+        action_regis_fp.triggered.connect(lambda: print('action_regis_fp.triggered'))
+
+        menu.addAction(action_detail)
+        menu.addAction(action_regis_fp)
+
+        menu.setStyleSheet('''
+                    QMenu{
+                            font-family: 'Sarabun', Arial, sans-serif;
+                            font-size: 14px;
+                            background: #FFFFFF;
+                            border: 1.5px solid #000000;
+                            color: #222;
+                            border-radius: 8px;
+                            padding: 4px;
+                            min-width: 160px;
+                           }
+                    QMenu::item {
+                            padding: 6px 24px;
+                            color: #0c5b9c;
+                            border-radius: 4px;
+                            background: transparent;
+                            }
+
+                    QMenu::item:selected,
+                    QMenu::item:hover {
+                            background-color: #b3d1ff;
+                            color: #0d47a1;
+                            }
+
+                    QMenu::separator {
+                            height: 1px;
+                            background: #b0b0b0;
+                            margin: 4px 0 4px 0;
+                            border-radius: 1px;
+                            }       
+        ''')
+        menu.exec(self.table_view.viewport().mapToGlobal(position))
 
 
-
+    def show_detail_relative(self, row):
+        data = self.table_model._data[row]
+        dialog_popup = List_popup(self)
+        dialog_popup.show_detail_relative(data, title=f'รายละเอียดญาติ ราย" {data[1]}{data[2]} {data[3]}"')
+        dialog_popup.exec()
+        self.load_relatives()
 
 
 

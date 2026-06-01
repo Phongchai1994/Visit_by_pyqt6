@@ -10,7 +10,8 @@ from PyQt6.QtWidgets import (
     QCheckBox,
     QGridLayout,
     QLineEdit,
-    QMenu
+    QMenu,
+    QFrame
 )
 
 from PyQt6.QtCore import Qt, QAbstractTableModel
@@ -80,10 +81,16 @@ class Prisoners_list(QWidget):
         title_label.setObjectName('Qlabel_title_lable')
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
+        title_line = QFrame()
+        title_line.setFrameShape(QFrame.Shape.HLine)
+        title_line.setFrameShadow(QFrame.Shadow.Sunken)
+        title_line.setStyleSheet("color: #000000; background: #000000;")
+
         # Layout
         vbox = QVBoxLayout()
         vbox.addItem(QSpacerItem(0, 12, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed))
         vbox.addWidget(title_label)
+        vbox.addWidget(title_line)
 
         main_layout.addLayout(vbox)
 
@@ -360,7 +367,7 @@ class Prisoners_list(QWidget):
     def show_detail(self, row):
         data = self.table_model._data[row]
         dialog_popup = List_popup(self)
-        dialog_popup.show_detail(data, title=f'รายละเอียด ราย {data[2]} {data[3]}')
+        dialog_popup.show_detail_prisoner(data, title=f'รายละเอียด ราย {data[2]} {data[3]}')
         dialog_popup.exec()
 
     def add_relative(self, row):
