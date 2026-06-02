@@ -4,6 +4,7 @@ import hashlib
 import traceback
 import inspect
 from dotenv import load_dotenv
+from psycopg2 import Binary
 
 load_dotenv(load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '.env')))
 
@@ -51,8 +52,9 @@ class POSTGRESQL():
                     ON DELETE RESTRICT,
                 CONSTRAINT relative_fingerprints_unique
                     UNIQUE (relative_id, finger_name)
-            );
-
+            )
+            """,
+            """
             CREATE TABLE IF NOT EXISTS public.prisoners (
                 prisoner_id bigint PRIMARY KEY,
                 sex text NOT NULL,
@@ -75,7 +77,6 @@ class POSTGRESQL():
                 l_name text NOT NULL,
                 address text NOT NULL,
                 tel text NOT NULL,
-                fingerprint bytea,
                 is_active boolean DEFAULT true,
                 "timestamp" timestamp DEFAULT CURRENT_TIMESTAMP
             )
@@ -188,8 +189,8 @@ class POSTGRESQL():
             )
             """
         ]
+                
         alter_commands = [
-            # ตัวอย่าง เพิ่ม column note ชนิด text
             'ALTER TABLE IF EXISTS public.relations ADD COLUMN IF NOT EXISTS "user_insert" text',
             'ALTER TABLE IF EXISTS public.relatives ADD COLUMN IF NOT EXISTS "user_insert" text'
         ]
@@ -215,7 +216,26 @@ class POSTGRESQL():
         '''
         ดึงข้อมูลญาติ ใน db'''
         with self.conn.cursor() as cur: 
-            cur.execute('SELECT relative_id, title ,f_name, l_name, address, tel, fingerprint IS NOT NULL AS has_fingerprint, is_active, timestamp FROM relatives')
+            cur.execute(
+                """
+                SELECT
+                    r.relative_id,
+                    r.title,
+                    r.f_name,
+                    r.l_name,
+                    r.address,
+                    r.tel,
+                    EXISTS(
+                        SELECT 1
+                        FROM relative_fingerprints rf
+                        WHERE rf.relative_id = r.relative_id
+                        AND rf.is_active = TRUE
+                    ) AS has_fingerprint,
+                    r.is_active,
+                    r.timestamp
+                FROM relatives r
+                """
+            )
             rows = cur.fetchall()
             return rows
 
@@ -369,6 +389,23 @@ class POSTGRESQL():
             )
             return True
 
+    @log_db_exceptions
+    def upsert_relative_fingerprint(self, relative_id, finger_name, fingerprint_bytes, is_active = True):
+        with self.conn.cursor() as cur:
+            cur.execute(
+                '''
+                INSERT INTO relative_fingerprints(
+                    relative_id, finger_name, fingerprint, is_active, created_at
+                ) 
+                VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
+                ON CONFLICT (relative_id, finger_name) DO UPDATE SET
+                    fingerprint = EXCLUDED.fingerprint,
+                    is_active = EXCLUDED.is_active,
+                    updated_at = CURRENT_TIMESTAMP
+                ''',
+                (relative_id, finger_name, Binary(fingerprint_bytes), is_active)
+            )
+            return True
 
     def log_error(self, function_name, error_message, extra_info=None):
         try:

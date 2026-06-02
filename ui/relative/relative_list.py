@@ -265,7 +265,7 @@ class Relative_list(QWidget):
         action_regis_fp = QAction('ลงทะเบียนลายนิ้วมือ', self)
 
         action_detail.triggered.connect(lambda: self.show_detail_relative(index.row()))
-        action_regis_fp.triggered.connect(lambda: print('action_regis_fp.triggered'))
+        action_regis_fp.triggered.connect(lambda: self.regis_fp(index.row()))
 
         menu.addAction(action_detail)
         menu.addAction(action_regis_fp)
@@ -312,4 +312,10 @@ class Relative_list(QWidget):
         self.load_relatives()
 
 
+    def regis_fp(self, row):
+        data = self.table_model._data[row]
+        from devices.regis_fp import Fingerprint_Register_Dialog
+        dialog_popup = Fingerprint_Register_Dialog(data, self)
+        if dialog_popup.exec():
+            self.load_relatives()
 
