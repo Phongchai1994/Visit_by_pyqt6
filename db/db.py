@@ -305,12 +305,14 @@ class POSTGRESQL():
         with self.conn.cursor() as cur:
             cur.execute(
                 '''
-                SELECT p.prisoner_id, p.f_name, p.l_name, p.level, p.dan, p.status, p.disciplinary, r.relation
+                SELECT p.prisoner_id, p.sex, p.f_name, p.l_name, p.level, p.dan, p.status, p.disciplinary, r.relation
                 FROM prisoners p
                 JOIN relations r ON p.prisoner_id = r.prisoner_id
                 WHERE r.relative_id = %s
                 ''',(relative_id,)
             )
+            row = cur.fetchall()
+            return row
 
     @log_db_exceptions
     def insert_or_update_relative_and_relation(self,relative_id, prisoner_id, title, f_name, l_name, address, tel, relation, user_insert = None):
@@ -407,6 +409,22 @@ class POSTGRESQL():
             )
             return True
 
+    @log_db_exceptions
+    def get_relative_fingerprint_return_fp_name(self,relative_id):
+        '''
+        ดึงข้อมูลลายนิ้วมือของญาติ คืนค่าเป็น finger_name, is_active
+        '''
+        with self.conn.cursor() as cur:
+            cur.execute(
+                '''
+                    SELECT finger_name, is_active 
+                    FROM public.relative_fingerprints
+                    WHERE relative_id = %s
+                ''',
+                (relative_id,)
+            )
+            return cur.fetchall()
+
     def log_error(self, function_name, error_message, extra_info=None):
         try:
             with self.conn.cursor() as cur:
@@ -419,6 +437,57 @@ class POSTGRESQL():
                 )
         except Exception as log_e:
             print(f"Error logging to log_error: {log_e}")
+
+    @log_db_exceptions
+    def sync_active_status_from_prisoners(self):
+        """
+        ถ้ามีผู้ต้องขังที่ยังปกติอยู่สักคน ให้ relatives.is_active = true
+        ถ้าไม่ผูกกับผู้ต้องขังเลย หรือผูกแล้วทุกคนเป็น ไม่อยู่ ให้ false
+
+        Sync relations.is_active and relatives.is_active from prisoners.status.
+        - relations.is_active := TRUE if related prisoner.status <> 'ไม่อยู่', else FALSE
+        - relatives.is_active := TRUE if any linked prisoner.status <> 'ไม่อยู่', else FALSE
+        """
+        with self.conn.cursor() as cur:
+            # update each relation based on its prisoner status
+            cur.execute(
+                """
+                UPDATE relations r
+                SET is_active = CASE WHEN p.status = 'ไม่อยู่' THEN FALSE ELSE TRUE END,
+                    "timestamp" = CURRENT_TIMESTAMP
+                FROM prisoners p
+                WHERE p.prisoner_id = r.prisoner_id;
+                """
+            )
+
+            cur.execute(
+                """
+                UPDATE relatives rel
+                SET is_active = EXISTS (
+                    SELECT 1
+                    FROM relations r2
+                    JOIN prisoners p2 ON p2.prisoner_id = r2.prisoner_id
+                    WHERE r2.relative_id = rel.relative_id
+                    AND p2.status <> 'ไม่อยู่'
+                ),
+                "timestamp" = CURRENT_TIMESTAMP
+                """
+            )
+            # ถ้า relatives.is_active = false แล้ว คำสั่งนี้จะปิด fingerprint ทุกอันของญาตินั้นด้วย
+            cur.execute(
+                """
+                UPDATE relative_fingerprints rf
+                SET is_active = FALSE,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM relatives rel
+                    WHERE rel.relative_id = rf.relative_id
+                    AND rel.is_active = TRUE
+                )
+                """
+            )
+        return True
 
 # if __name__ == "__main__":
 #     db = POSTGRESQL()

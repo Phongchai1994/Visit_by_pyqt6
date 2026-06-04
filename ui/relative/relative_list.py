@@ -46,6 +46,8 @@ class RelativesTabelModel(QAbstractTableModel):
             # ตรวจสอบ fingerprint
             if index.column() == 6:
                 return 'ลงทะเบียนแล้ว' if val else 'ไม่ลงทะเบียน'
+            if index.column() == 7:
+                return 'ใช้งานอยู่' if val else 'ถูกยกเลิกแล้ว'
             return '' if val is None else str(val)
         
         if role == Qt.ItemDataRole.ForegroundRole:
@@ -96,15 +98,8 @@ class Relative_list(QWidget):
 
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
-        self.proportions = [
-
-        ]
-
         self.table_view = None
 
-        self.filer_options = [
-
-        ]
         self.create_filter_ui(main_layout)
 
         self.load_relatives()
@@ -142,6 +137,22 @@ class Relative_list(QWidget):
         fp_group.setLayout(fp_layout)
         filter_layout.addWidget(fp_group, 0, 1)
 
+        state_group = QGroupBox('สถานะ')
+        state_group.setMinimumWidth(180)
+        state_list = ['ใช้งานอยู่','ถูกยกเลิกแล้ว']
+        self.state_checkbox = []
+        state_layout = QGridLayout()
+        state_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        for i,st in enumerate(state_list):
+            cb = QCheckBox(st)
+            if st == 'ใช้งานอยู่':
+                cb.setChecked(True)
+            cb.stateChanged.connect(self.apply_filters)
+            self.state_checkbox.append(cb)
+            state_layout.addWidget(cb, i, 0)
+        state_group.setLayout(state_layout)
+        filter_layout.addWidget(state_group, 0, 2)
+
         search_group = QGroupBox("ค้นหาและแสดงผล")
         self.search_text = QLineEdit()
         self.search_text.setPlaceholderText('ค้นหาด้วย หมายเลขประจำตัว ชื่อหรือสกุล...')
@@ -155,10 +166,7 @@ class Relative_list(QWidget):
         search_layout.addWidget(self.label_total, 1, 0)
 
         search_group.setLayout(search_layout)
-        filter_layout.addWidget(search_group, 0, 2)
-        # filter_layout.setColumnStretch(0, 1)
-        # filter_layout.setColumnStretch(1, 1)
-        # filter_layout.setColumnStretch(2, 1)
+        filter_layout.addWidget(search_group, 0, 3)
         layout.addLayout(filter_layout)
 
     def apply_filters(self):
@@ -169,6 +177,7 @@ class Relative_list(QWidget):
         search_text = self.search_text.text().strip().lower()
         titles = [cb.text() for cb in self.title_checkbox if cb.isChecked()]
         select_fp = [cb.text() for cb in self.fp_checkbox if cb.isChecked()]
+        state = [cb.text() for cb in self.state_checkbox if cb.isChecked()]
         filtered = []
         for row in self.all_relatives:
             title = str(row[1]).strip() if row[1] is not None else ''
@@ -189,11 +198,17 @@ class Relative_list(QWidget):
 
                 if not match_title:
                     continue
+            
+            if state:
+                state_text = 'ใช้งานอยู่' if row[7] else 'ถูกยกเลิกแล้ว'
+                if state_text not in state:
+                    continue
 
             if select_fp:
                 fp_text = "ลงทะเบียนแล้ว" if row[6] else "ไม่ลงทะเบียน"
                 if fp_text not in select_fp:
                     continue
+
 
 
             filtered.append(row)
@@ -262,10 +277,10 @@ class Relative_list(QWidget):
         menu.addSeparator()
 
         action_detail = QAction('ดูรายละเอียด', self)
-        action_regis_fp = QAction('ลงทะเบียนลายนิ้วมือ', self)
+        action_regis_fp = QAction('ดูรายละเอียดลายนิ้วมือ', self)
 
         action_detail.triggered.connect(lambda: self.show_detail_relative(index.row()))
-        action_regis_fp.triggered.connect(lambda: self.regis_fp(index.row()))
+        action_regis_fp.triggered.connect(lambda: self.show_regis_fp(index.row()))
 
         menu.addAction(action_detail)
         menu.addAction(action_regis_fp)
@@ -307,15 +322,15 @@ class Relative_list(QWidget):
     def show_detail_relative(self, row):
         data = self.table_model._data[row]
         dialog_popup = List_popup(self)
-        dialog_popup.show_detail_relative(data, title=f'รายละเอียดญาติ ราย" {data[1]}{data[2]} {data[3]}"')
+        dialog_popup.show_detail_relative(data, title=f'รายละเอียดญาติ "{data[1]}{data[2]} {data[3]}"')
         dialog_popup.exec()
         self.load_relatives()
 
 
-    def regis_fp(self, row):
+    def show_regis_fp(self, row):
         data = self.table_model._data[row]
-        from devices.regis_fp import Fingerprint_Register_Dialog
-        dialog_popup = Fingerprint_Register_Dialog(data, self)
+        dialog_popup = List_popup(self)
+        dialog_popup.show_detail_fingerprint(data, title=f'รายละเอียดลายนิ้วมือ "{data[1]}{data[2]} {data[3]}"')
         if dialog_popup.exec():
             self.load_relatives()
 

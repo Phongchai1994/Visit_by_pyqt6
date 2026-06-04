@@ -43,6 +43,7 @@ class MAINWINDOW(QMainWindow):
         self.menu.btn_prisoner_register.clicked.connect(self.show_prisoner_register)
         self.menu.btn_prisoners_list.clicked.connect(self.show_prisoners_list)
         self.menu.btn_relatives_list.clicked.connect(self.show_relatives_list)
+        self.menu.btn_register_fingerprint.clicked.connect(self.show_)
         
         # สร้าง QFrame สำหรับ main content
         self.main_content = QFrame()

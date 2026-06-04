@@ -168,8 +168,7 @@ class List_popup(QDialog):
                 self.input_id_card.setReadOnly(True)
             else:
                 AlertBox.warning(self, title='ไม่พบข้อมูล' ,message='ไม่พบข้อมูล')
-            
-        
+              
         def save_relative_relation_to_db(prisoner):
             '''
             บันทึกข้อมุลลง db'''
@@ -498,7 +497,6 @@ class List_popup(QDialog):
         edit_gender.currentTextChanged.connect(update_dan_options)
 
     def show_detail_relative(self, relative, title):
-        print(relative)
         try:
             data_relatives = self.db.get_prisoners_from_relative_id(relative_id=relative[0])
         except Exception as e:
@@ -531,12 +529,118 @@ class List_popup(QDialog):
             value = ''
             if relative and i < len(relative) and relative[i] is not None:
                 value = str(relative[i])
+                if i == 6:
+                    if relative[i]:
+                        value = 'ลงทะเบียนแล้ว'
+                    else:
+                        value = 'ยังไม่ลงทะเบียน'
+                if i == 7:
+                    if relative[i]:
+                        value = 'ใช้งานอยู่' 
+                    else:
+                        value = 'ยกเลิก'
+
             lbl_key = QLabel(label + " :")
             lbl_key.setObjectName('Qlabel_lbl_key')
             lbl_val = QLabel(value)
+            if i == 6 and not relative[i]:
+                lbl_val.setStyleSheet('color: red;')
             lbl_val.setObjectName('Qlabel_lbl_val')
             lbl_val.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
             form.addRow(lbl_key, lbl_val)
+        if data_relatives:    
+            relationship_with_prisoners = QLabel('ความสัมพันธ์กับผู้ต้องขัง')
+            form.addRow(relationship_with_prisoners)
+
+        for i, value in enumerate(data_relatives, 1):
+            disciplinary_text = '-'
+            if value[7] is not None and str(value[7]).strip().lower() != 'none':
+                disciplinary_text = str(value[7])
+
+            status_text = str(value[6])
+            status_html = status_text
+            if status_text == 'ไม่อยู่':
+                status_html = f'<span style="color: red;">{status_text}</span>'
+            else:
+                status_html = f'<span style="color: green;">{status_text}</span>'
+
+            disciplinary_html = disciplinary_text
+            if disciplinary_text == 'ผิดวินัย':
+                disciplinary_html = f'<span style="color: red;">{disciplinary_text}</span>'
+
+            prisoner_data = (
+                f'ชื่อ {value[2]} {value[3]} เพศ {value[1]}<br>'
+                f'ชั้น {value[4]} แดน {value[5]}<br>'
+                f'สถานะ {status_html} วินัย {disciplinary_html}'
+            )
+
+            lbl_key = QLabel(f"คนที่ {i} :")
+            lbl_val = QLabel(prisoner_data)
+            lbl_val.setTextFormat(Qt.TextFormat.RichText)
+            lbl_val.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            form.addRow(lbl_key, lbl_val)
+
+        layout.addLayout(form)
+
+        btn_close = QPushButton('ปิด')
+        btn_close.setObjectName('btn_close')
+        btn_close.clicked.connect(self.close)
+
+        layout.addWidget(btn_close, alignment=Qt.AlignmentFlag.AlignRight)
+
+    def show_detail_fingerprint(self, relative_data ,title):
+        relative_id = relative_data[0]
+        try:
+            data_fingerprint = self.db.get_relative_fingerprint_return_fp_name(relative_id)
+        except Exception as e:
+            print("get_relative_fingerprint_return_fp_name error:", e)
+            data_fingerprint = []
+
+        self.setWindowTitle(title)
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 18, 24, 18)
+        layout.setSpacing(12)
+
+        label_header = QLabel('รายละเอียดลายนิ้วมือ')
+        label_header.setObjectName('Qlabel_header')
+        layout.addWidget(label_header, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        # เส้นคั่น
+        line = QLabel()
+        line.setFixedHeight(2)
+        line.setObjectName('Qlabel_line')
+        layout.addWidget(line)
+
+        form = QFormLayout()
+        form.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+        form.setFormAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        form.setHorizontalSpacing(18)
+        form.setVerticalSpacing(8)
+        label_header_in_form = QLabel()
+        label_header_in_form.setObjectName('label_header_in_form')
+
+        if data_fingerprint:
+            label_header_in_form.setText('รายการลายนิ้วมือ')
+            label_header_in_form.setStyleSheet('''
+                QLabel{
+                                               font-size: 18px;
+                                               color: #222;
+                                               }
+
+            ''')
+            form.addRow(label_header_in_form)
+            for idx, val in enumerate(data_fingerprint, 1):
+                print(idx , val)
+        else:
+            label_header_in_form.setText('ไม่พบลายนิ้วมือ')
+            label_header_in_form.setStyleSheet('''
+                QLabel{
+                                               font-size: 24px;
+                                               color: #ff0000;
+                                               }
+
+            ''')
+            form.addRow(label_header_in_form)
 
         layout.addLayout(form)
 

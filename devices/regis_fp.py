@@ -73,6 +73,7 @@ class Fingerprint_Worker(QThread):
 class Fingerprint_Register_Dialog(QDialog):
     def __init__(self, relative_data ,parent = None):
         super().__init__(parent)
+        self.setObjectName('Fingerprint_Register_Dialog')
         self.db = POSTGRESQL()
         self.relative_data = relative_data
         self.template_bytes = None
