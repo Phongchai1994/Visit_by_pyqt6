@@ -681,6 +681,33 @@ QWidget#main_prisoner_list_widget QGroupBox::title {
     padding: 0 4px;
 }
 
+/*########   class Register_Fingerprint ###########*/
+
+QWidget#Register_Fingerprint #Register_Fingerprint_title_label{
+    font-size: 22px;
+    font-weight: bold;
+    color: #000000;
+    margin-bottom: 1px;
+    margin-top: 10px;
+}
+
+QWidget#Register_Fingerprint {
+    background: #fff;
+    color: #222;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 10px;
+    margin: 10px 10px 10px 1px;
+    font-family: 'Sarabun', Arial, sans-serif;
+    font-size: 14px;
+}
+
+QWidget#Register_Fingerprint QLabel {
+    color: #333;
+    font-weight: bold;
+    font-family: 'Sarabun', Arial, sans-serif;               
+    font-size: 14px;
+}
+
 /*########   class prisoners_list_popup ###########*/
 
 QDialog#list_popup QLabel#time_status_update {

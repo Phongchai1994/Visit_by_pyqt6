@@ -159,7 +159,7 @@ class Relative_list(QWidget):
         self.search_text.textChanged.connect(self.apply_filters)
         search_layout = QGridLayout()
         search_layout.addWidget(self.search_text, 0, 0)
-        
+
         self.label_total = QLabel()
         self.label_total.setText("จำนวนทั้งหมด : 0 ราย")
         self.label_total.setAlignment(Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignRight)

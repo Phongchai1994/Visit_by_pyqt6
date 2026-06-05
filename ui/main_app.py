@@ -19,6 +19,7 @@ from ui.dashboard.dashboard_widget import Dashboard_Widget
 from ui.prisoner.register_prisoner import Prisoner_register_widget
 from ui.prisoner.prisoners_list import Prisoners_list
 from ui.relative.relative_list import Relative_list
+from ui.relative.regis_fingerprint import Register_Fingerprint
 from utils.resource import Resource_Helper
 
 import sys
@@ -26,6 +27,7 @@ import sys
 class MAINWINDOW(QMainWindow):
     def __init__(self,user_role):
         super().__init__()
+        self.user_role = user_role
         self.setWindowTitle('MAIN WINDOW')
         self.setGeometry(200, 200, 720, 480)
         self.setWindowIcon(QIcon(Resource_Helper.resource_path('ico.ico')))
@@ -37,13 +39,13 @@ class MAINWINDOW(QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
 
         # รับค่าการคลิกปุ่ม
-        self.menu = MENU_FRAME(user_role=user_role)
+        self.menu = MENU_FRAME(user_role=self.user_role)
         layout.addWidget(self.menu)
         self.menu.btn_summery.clicked.connect(self.show_dashboard)
         self.menu.btn_prisoner_register.clicked.connect(self.show_prisoner_register)
         self.menu.btn_prisoners_list.clicked.connect(self.show_prisoners_list)
         self.menu.btn_relatives_list.clicked.connect(self.show_relatives_list)
-        self.menu.btn_register_fingerprint.clicked.connect(self.show_)
+        self.menu.btn_register_fingerprint.clicked.connect(self.show_register_fp)
         
         # สร้าง QFrame สำหรับ main content
         self.main_content = QFrame()
@@ -94,6 +96,13 @@ class MAINWINDOW(QMainWindow):
             if widget:
                 widget.setParent(None)
         self.main_content.layout().addWidget(Relative_list())
+
+    def show_register_fp(self):
+        for i in reversed(range(self.main_content.layout().count())):
+            widget = self.main_content.layout().itemAt(i).widget()
+            if widget:
+                widget.setParent(None)
+        self.main_content.layout().addWidget(Register_Fingerprint(user_role = self.user_role))
 
     def init_menu(self):
         menubar = self.menuBar()
