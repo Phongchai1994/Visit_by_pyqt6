@@ -5,6 +5,10 @@ import traceback
 import inspect
 from dotenv import load_dotenv
 from psycopg2 import Binary
+<<<<<<< HEAD
+=======
+from ui.alert_box import AlertBox
+>>>>>>> 7878fa5 (add regis fingerprint class)
 
 load_dotenv(load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '.env')))
 

@@ -17,8 +17,19 @@ USER_ROLE = None
 class LOGIN(QWidget):
     def __init__(self):
         super().__init__()
-        self.db = POSTGRESQL()
-        self.db.create_tables_if_not_exist()
+        
+        self.db = None
+        self.status = False
+        try:
+            self.db = POSTGRESQL()
+            self.db.create_tables_if_not_exist()
+            self.status = True
+            print(self.db)
+        except Exception as e:
+            AlertBox.error(self, 'Error connect db', f'Error in {__name__}: {e}')
+            self.status = False
+            return
+        
         self.setObjectName('Qwidget_login')
 
         self.setWindowTitle('Login')
@@ -62,11 +73,16 @@ class LOGIN(QWidget):
         self.move(frameGm.topLeft())
 
     def handle_login(self):
-
+        if not self.status or self.db is None:
+            AlertBox.error(self, 'ตรวจสอบข้อมูล', 'ติดต่อฐานข้อมูลไม่ได้')
+            return
         global USER_ROLE,USER_NAME
         username = self.input_user.text()
         password = self.input_password.text()
-        success, user_role, user_name = self.db.check_db_login(username, password)
+        try:
+            success, user_role, user_name = self.db.check_db_login(username, password)
+        except Exception as e:
+            AlertBox.error(self, 'ตรวจสอบข้อมูล', 'ตรวจสอบ HOST')
         USER_ROLE = user_role
         USER_NAME = user_name
         if success:

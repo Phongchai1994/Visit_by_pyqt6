@@ -36,9 +36,10 @@ if __name__ == '__main__':
             print('font load failed:', font_path)
         
         window = LOGIN()
-        window.setWindowIcon(QIcon(Resource_Helper.resource_path('ico.ico')))
-        window.show()
-        sys.exit(app.exec())
+        if window.status:
+            window.setWindowIcon(QIcon(Resource_Helper.resource_path('ico.ico')))
+            window.show()
+            sys.exit(app.exec())
     except Exception as e:
         import traceback
         print("Exception:", e)
