@@ -24,7 +24,6 @@ class LOGIN(QWidget):
             self.db = POSTGRESQL()
             self.db.create_tables_if_not_exist()
             self.status = True
-            print(self.db)
         except Exception as e:
             AlertBox.error(self, 'Error connect db', f'Error in {__name__}: {e}')
             self.status = False

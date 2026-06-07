@@ -70,7 +70,7 @@ class ThaiIDReader:
         def connect(self):
             self.conn.connect()
             atr = self.conn.getATR()
-            print("ATR:", toHexString(atr))
+            # print("ATR:", toHexString(atr))
             self.req = [0x00, 0xC0, 0x00, 0x01] if atr[:2] == [0x3B, 0x67] else [0x00, 0xC0, 0x00, 0x00]
 
         def transmit(self, apdu: List[int]) -> Tuple[List[int], int, int]:
@@ -78,7 +78,7 @@ class ThaiIDReader:
 
         def initialize(self):
             sw1, sw2 = self.transmit(self.SELECT + self.APPLET)[1:]
-            print(f"Select Applet: {sw1:02X} {sw2:02X}")
+            # print(f"Select Applet: {sw1:02X} {sw2:02X}")
 
         def get_data(self, cmd: List[int]) -> List[int]:
             data, sw1, sw2 = self.transmit(cmd)
@@ -88,7 +88,7 @@ class ThaiIDReader:
         def read_field(self, cmd: APDUCommand) -> str:
             data = self.get_data(cmd.ins)
             result = cmd.decoder(data)
-            print(f"{cmd.label}: {result}")
+            # print(f"{cmd.label}: {result}")
             return result
 
     def select_reader(self) -> Optional[object]:
@@ -96,11 +96,11 @@ class ThaiIDReader:
         if not rlist:
             print("No smartcard readers found.")
             return None
-        print("Available readers:")
-        for i, r in enumerate(rlist):
-            print(f"  [{i}] {r}")
+        # print("Available readers:")
+        # for i, r in enumerate(rlist):
+        #     print(f"  [{i}] {r}")
         choice = 0
-        print(f"Auto-select reader [0]: {rlist[0]}")
+        # print(f"Auto-select reader [0]: {rlist[0]}")
         return rlist[choice]
 
     def read_card(self):
@@ -137,17 +137,17 @@ class ThaiIDReader:
             "address": self.address
         }
 
-if __name__ == "__main__":
-    try:
-        reader = ThaiIDReader()
-        reader.read_card()
-        info = reader.get_person_info()
-        print("เลขบัตร:", info["cid"])
-        print("คำนำหน้า:", info["title"])
-        print("ชื่อ:", info["firstname"])
-        print("สกุล:", info["lastname"])
-        print("ที่อยู่:", info["address"])
-    except Exception as e:
-        print("Error:", e)
-    finally:
-        sys.exit()
+# if __name__ == "__main__":
+#     try:
+#         reader = ThaiIDReader()
+#         reader.read_card()
+#         info = reader.get_person_info()
+#         print("เลขบัตร:", info["cid"])
+#         print("คำนำหน้า:", info["title"])
+#         print("ชื่อ:", info["firstname"])
+#         print("สกุล:", info["lastname"])
+#         print("ที่อยู่:", info["address"])
+#     except Exception as e:
+#         print("Error:", e)
+#     finally:
+#         sys.exit()

@@ -19,8 +19,7 @@ from PyQt6.QtGui import QRegularExpressionValidator
 from devices.card_reader import ThaiIDReader
 from db.db import POSTGRESQL
 from ui.alert_box import AlertBox
-
-from datetime import datetime
+from utils.date_convers import date_convers
 
 import os
 import traceback
@@ -70,17 +69,7 @@ class List_popup(QDialog):
                 value = str(prisoner[i])
                 if i == 10:
                     try: 
-                        dt = datetime.strptime(value.split('.')[0], "%Y-%m-%d %H:%M:%S")
-                        months = [
-                            "", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
-                            "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
-                        ]
-                        day = dt.day
-                        month = months[dt.month]
-                        year = dt.year
-                        hour = dt.hour
-                        minute = dt.minute
-                        value = f"{day} {month} {year} เวลา {hour:02d}:{minute:02d} น."
+                        value = date_convers(value)
                     except Exception as e:
                         pass  # ถ้าแปลงไม่ได้ ให้แสดงค่าดิบ
             lbl_key = QLabel(label + " :")
@@ -467,19 +456,8 @@ class List_popup(QDialog):
         btn_close.clicked.connect(lambda:self.close())
         btn_save.clicked.connect(lambda: save_edit_data_prisoner_to_db())
 
-
-        dt = datetime.strptime(str(prisoner[10]).split('.')[0], "%Y-%m-%d %H:%M:%S")
-        months = [
-            "", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
-            "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
-        ]
-        day = dt.day
-        month = months[dt.month]
-        year = dt.year
-        hour = dt.hour
-        minute = dt.minute
-        time_status = f"{day} {month} {year} เวลา {hour:02d}:{minute:02d} น."
-
+        time_status = date_convers(str(prisoner[10]))
+        
         edit_id.setText(str(pri_id))
         edit_gender.setCurrentIndex(edit_gender.findText(pri_gender))
         edit_f_name.setText(pri_fname)
@@ -525,6 +503,7 @@ class List_popup(QDialog):
         form.setVerticalSpacing(8)
 
         form_header_label = ['เลขประจำตัว', 'คำนำหน้า', 'ชื่อ', 'สกุล', 'ที่อยุ่', 'เบอร์โทร', 'ลายนิ้วมือ', 'สถานะ', 'วันบันทึกข้อมูล']
+        print(relative)
         for i, label in enumerate(form_header_label):
             value = ''
             if relative and i < len(relative) and relative[i] is not None:
@@ -539,6 +518,9 @@ class List_popup(QDialog):
                         value = 'ใช้งานอยู่' 
                     else:
                         value = 'ยกเลิก'
+                if i == 8:
+                    if relative[i]:
+                        value = date_convers(relative[i])
 
             lbl_key = QLabel(label + " :")
             lbl_key.setObjectName('Qlabel_lbl_key')

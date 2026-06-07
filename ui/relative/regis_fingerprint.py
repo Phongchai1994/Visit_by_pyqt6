@@ -13,10 +13,12 @@ from PyQt6.QtWidgets import (
     QGroupBox,
     QFormLayout
 )
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QIntValidator
+from PyQt6.QtCore import Qt, QRegularExpression
+from PyQt6.QtGui import QRegularExpressionValidator
 from db.db import POSTGRESQL
 from ui.alert_box import AlertBox
+from utils.date_convers import date_convers
+from ui.list_popup import List_popup
 
 def read_card():
     from devices.card_reader import ThaiIDReader
@@ -58,21 +60,22 @@ class Register_Fingerprint(QWidget):
         group_input_id = QGroupBox('ค้นหาด้วยหมายเลขประจำตัว')
         group_input_id.setMinimumWidth(420)
 
+        regex = QRegularExpression(r"\d{0,13}")
+
         search_layout = QGridLayout()
         self.input_id = QLineEdit()
-        self.input_id.setValidator(QIntValidator())
+        self.input_id.setValidator(QRegularExpressionValidator(regex))
         self.input_id.setPlaceholderText('ป้อนหมายเลขฯ แล้วกด Enter')
         self.input_id.returnPressed.connect(lambda: self.get_id_on_readcard('enter'))
         self.btn_get_id = QPushButton('ดึงข้อมูลจากบัตรฯ')
         self.btn_get_id.released.connect(lambda: self.get_id_on_readcard('button'))
         search_layout.addWidget(self.input_id, 0 , 0)
         search_layout.addWidget(self.btn_get_id, 0, 1)
-        group_input_id.setLayout(search_layout)        
-
+        group_input_id.setLayout(search_layout)
         self.main_layout.addWidget(group_input_id, 0, Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
-        # self.main_layout.addStretch(1)
+        self.create_ui_relative_data()
 
-
+    def create_ui_relative_data(self):
         self.group_relative_detail = QGroupBox('ข้อมูลญาติ')
         self.group_relative_detail.setMinimumWidth(420)
 
@@ -88,6 +91,10 @@ class Register_Fingerprint(QWidget):
         self.label_l_name = QLabel()
         self.label_address = QLabel()
         self.label_tel = QLabel()
+        self.label_status = QLabel()
+        self.label_time_insert = QLabel()
+        self.label_time_update = QLabel()
+        self.label_user_insert = QLabel()
 
         self.form.addRow('หมายเลขบัตรฯ ', self.label_id)
         self.form.addRow('คำนำหน้า', self.label_title)
@@ -95,76 +102,128 @@ class Register_Fingerprint(QWidget):
         self.form.addRow('นามสกุล', self.label_l_name)
         self.form.addRow('ที่อยู่', self.label_address)
         self.form.addRow('เบอร์โทร', self.label_tel)
+        self.form.addRow('สถานะ', self.label_status)
+        self.form.addRow('วันที่เพิ่มข้อมูล', self.label_time_insert)
+        self.form.addRow('วันที่อัพเดทล่าสุด', self.label_time_update)
+        self.form.addRow('เพิ่มโดย', self.label_user_insert)
 
         self.group_relative_detail.setLayout(self.form)
-        self.main_layout.addWidget(self.group_relative_detail, 0, Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
 
-    def show_datail_and_finger_fp_list(self):
-        try:
-            data_relative = self.db.get_relative_data(self.input_id.text().strip())
-            print(data_relative)
-            data_fingerprint = self.db.get_relative_fingerprint_return_fp_name(self.input_id.text().strip())
-            print(data_fingerprint)
-        except Exception as e:
-            print(f'error show_datail_and_finger_fp_list : {e}')
+        self.group_fingerprint_detail = QGroupBox('ข้อมูลลายนิ้วมือ')
+        self.group_fingerprint_detail.setMinimumWidth(420)
+        self.grid_layout_finger_detail = QGridLayout()
+        self.btn_regis = QPushButton('ลงทะเบียน')
+        self.grid_layout_finger_detail.addWidget(self.btn_regis, 1 , 1, alignment=Qt.AlignmentFlag.AlignRight)
+        self.group_fingerprint_detail.setLayout(self.grid_layout_finger_detail)
 
-    def get_id_on_readcard(self,trigger ):
-        print(trigger)
-        # try: 
-        #     info_card = read_card()
-        #     print(info_card)
-        # except Exception as e:
-        #     AlertBox.error(self, 'Card Reader', f'ตรวจสอบเครื่องอ่านบัตร {__name__} : {e}')
-        #     return
-        # try:
-        #     if id:
-        #         id = self.input_id.text()
-        #         self.db.get_relative_data(id)
-        # except Exception as e:
-        #     AlertBox.error(self, 'ขอมูลของญาติ', f'ปัญหา {__name__} : {e}')
-        #     return
+        self.group_button = QGroupBox()
+        self.group_button.setMinimumWidth(420)
 
-        # self.input_id.setText(int(info_card['cid']))
-        # self.input_id.setReadOnly(True)
-        self.clear_old_relative_detail()
-
-        form = QFormLayout()
-        form.setVerticalSpacing(24)
-        form.setHorizontalSpacing(12)
-        form.setLabelAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignCenter)
-        form.setFormAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        self.group_relative_detail = QGroupBox('ข้อมูลญาติ')
-        self.group_relative_detail.setMinimumWidth(420)
-
-        label_id = QLabel()
-        label_title = QLabel()
-        label_f_name = QLabel()
-        label_l_name = QLabel()
-        label_address = QLabel()
-        label_tel = QLabel()
-
-        form.addItem(QSpacerItem(0, 12))
-        form.addRow('หมายเลขบัตรฯ ', label_id)
-        form.addRow('คำนำหน้า', label_title)
-        form.addRow('ชื่อ', label_f_name)
-        form.addRow('นามสกุล', label_l_name)
-        form.addRow('ที่อยู่', label_address)
-        form.addRow('เบอร์โทร', label_tel)
-
-        self.group_relative_detail.setLayout(form)
-        self.main_layout.addWidget(
-            self.group_relative_detail,
-            0,
-            Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop
-        )
-            
+        self.btn_close = QPushButton('เสร็จสิ้น')
+        vbox_in_groupbox = QVBoxLayout()
+        vbox_in_groupbox.addWidget(self.btn_close)
+        self.group_button.setLayout(vbox_in_groupbox)
         
+        self.main_layout.addWidget(self.group_relative_detail, 0, Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+        self.main_layout.addWidget(self.group_fingerprint_detail, 0, Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+        self.main_layout.addWidget(self.group_button, 0, Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+
+        self.group_relative_detail.hide()
+        self.group_fingerprint_detail.hide()
+        self.group_button.hide()   
+
+    def get_id_on_readcard(self, trigger):
+        self.create_ui_relative_data()
+        relative_id = None
+        #  ตรวจสอบการกด button or enter
+        if trigger == 'button':
+            try: 
+                info_card = read_card()
+                self.input_id.setText(str(info_card['cid']))
+                relative_id = info_card['cid']
+            except Exception as e:
+                AlertBox.error(self, 'Card Reader', f'ตรวจสอบเครื่องอ่านบัตร {__name__} : {e}')
+                return
+        elif trigger == 'enter':
+            try:
+                relative_id = self.input_id.text().strip().lower()
+            except Exception as e:
+                AlertBox.error(self, 'ขอมูลของญาติ', f'ปัญหา {__name__} : {e}')
+                return
+        else:
+            return
+        
+        if relative_id:
+            self.input_id.setReadOnly(True)
+            try:
+                relative_data = self.db.get_relative_data(relative_id=relative_id)
+                fingerprint_data = self.db.get_relative_fingerprint_return_fp_name(relative_id=relative_id)
+            except Exception as e:
+                pass
+        # print(relative_data)
+        if fingerprint_data:
+            label_fp_name = QLabel(fingerprint_data[0][0])
+            self.grid_layout_finger_detail.addWidget(QLabel('นิ้วที่ลงทะเบียน : '), 0, 0, Qt.AlignmentFlag.AlignRight)
+            self.grid_layout_finger_detail.addWidget(label_fp_name, 0, 1, Qt.AlignmentFlag.AlignLeft)
+            # print(fingerprint_data)
+            # print(fingerprint_data[0])
+        else:
+            label = QLabel('ไม่พบลายนิ้วมือ')
+            self.grid_layout_finger_detail.addWidget(label, 0, 0, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.btn_get_id.setEnabled(False)
+
+
+        rel_id = relative_data[0]
+        rel_title = relative_data[1]
+        rel_f_name = relative_data[2]
+        rel_l_name = relative_data[3]
+        rel_address = relative_data[4]
+        rel_tel = relative_data[5]
+        rel_status = relative_data[6]
+        rel_user_insert = relative_data[7]
+        rel_time_insert = date_convers(relative_data[8])
+        rel_time_update = '-' if relative_data[9] is None else date_convers(relative_data[9])
+
+        self.group_relative_detail.show()
+        self.group_fingerprint_detail.show()
+        self.group_button.show()
+
+        self.label_id.setText(str(rel_id))
+        self.label_title.setText(rel_title)
+        self.label_f_name.setText(rel_f_name)
+        self.label_l_name.setText(rel_l_name)
+        self.label_address.setText(rel_address)
+        self.label_tel.setText(str(rel_tel))
+        self.label_status.setText('ใช้งานอยู่' if rel_status else 'ยกเลิกแล้ว')
+        self.label_time_insert.setText(rel_time_insert)
+        self.label_time_update.setText(rel_time_update)
+        self.label_user_insert.setText(rel_user_insert)
+        self.btn_regis.clicked.connect(lambda: self.manage_fingerprint(relative_data=relative_data))
+        self.btn_close.clicked.connect(self.clear_old_relative_detail)
+   
+    def manage_fingerprint(self, relative_data):
+        dialog_popup = List_popup(self)
+        dialog_popup.show_detail_fingerprint(relative_data = relative_data, title = 'ลงทะเบียนลายนิ้วมือ')
+        dialog_popup.exec()
+
     def clear_old_relative_detail(self):
+        self.input_id.clear()
+        self.input_id.setReadOnly(False)
+        self.btn_get_id.setEnabled(True)
         if hasattr(self, 'group_relative_detail') and self.group_relative_detail is not None:
             self.main_layout.removeWidget(self.group_relative_detail)
             self.group_relative_detail.deleteLater()
-            self.group_relative_detail = None
+            self.group_relative_detail = None        
+
+        if hasattr(self, 'group_fingerprint_detail') and self.group_fingerprint_detail is not None:
+            self.main_layout.removeWidget(self.group_fingerprint_detail)
+            self.group_fingerprint_detail.deleteLater()
+            self.group_fingerprint_detail = None
+
+        if hasattr(self, 'group_button') and self.group_button is not None:
+            self.main_layout.removeWidget(self.group_button)
+            self.group_button.deleteLater()
+            self.group_button = None
 
 
 

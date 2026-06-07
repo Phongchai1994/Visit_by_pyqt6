@@ -5,11 +5,6 @@ import traceback
 import inspect
 from dotenv import load_dotenv
 from psycopg2 import Binary
-<<<<<<< HEAD
-=======
-from ui.alert_box import AlertBox
->>>>>>> 7878fa5 (add regis fingerprint class)
-
 load_dotenv(load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '.env')))
 
 def log_db_exceptions(func):
@@ -196,14 +191,16 @@ class POSTGRESQL():
                 
         alter_commands = [
             'ALTER TABLE IF EXISTS public.relations ADD COLUMN IF NOT EXISTS "user_insert" text',
-            'ALTER TABLE IF EXISTS public.relatives ADD COLUMN IF NOT EXISTS "user_insert" text'
+            'ALTER TABLE IF EXISTS public.relatives ADD COLUMN IF NOT EXISTS "user_insert" text',
+            'ALTER TABLE IF EXISTS public.relatives ADD COLUMN IF NOT EXISTS "time_update" timestamp'
+
         ]
         with self.conn.cursor() as cur:
             for command in commands:
                 cur.execute(command)
             for command in alter_commands:
                 cur.execute(command)
-        print("Tables created or already exist.")
+        # print("Tables created or already exist.")
 
     @log_db_exceptions
     def get_all_prisoners_list(self):
@@ -365,12 +362,13 @@ class POSTGRESQL():
     @log_db_exceptions
     def get_relative_data(self, relative_id):
         '''
-        ดึงข้อมูลญาติ จาก id ของญาติเอง เอาแค่ id,title,f_name,l_name,address,tel
+        ดึงข้อมูลญาติ จาก id ของญาติเอง เอาแค่ id,title,f_name,l_name,address,tel,is_active,user_insert,timestamp,time_update
+        FROM relatives
         '''
         with self.conn.cursor() as cur:
             cur.execute(
                 '''
-                SELECT relative_id, title, f_name, l_name, address, tel
+                SELECT relative_id, title, f_name, l_name, address, tel, is_active, user_insert, timestamp, time_update
                 FROM relatives
                 WHERE relative_id = %s
                 ''',
@@ -421,7 +419,7 @@ class POSTGRESQL():
         with self.conn.cursor() as cur:
             cur.execute(
                 '''
-                    SELECT finger_name, is_active 
+                    SELECT finger_name, is_active
                     FROM public.relative_fingerprints
                     WHERE relative_id = %s
                 ''',
