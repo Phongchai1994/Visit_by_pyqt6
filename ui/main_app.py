@@ -20,6 +20,12 @@ from ui.prisoner.register_prisoner import Prisoner_register_widget
 from ui.prisoner.prisoners_list import Prisoners_list
 from ui.relative.relative_list import Relative_list
 from ui.relative.regis_fingerprint import Register_Fingerprint
+from ui.book_visit.booking_by_id import Book_By_National_ID
+from ui.book_visit.booking_by_fp import Book_By_Fingerprint
+from ui.report.daily_report import Dialy_Report
+from ui.report.monthly_report import Monthly_Report
+from ui.report.spacial_report import Spacial_Report
+
 from utils.resource import Resource_Helper
 
 import sys
@@ -46,6 +52,11 @@ class MAINWINDOW(QMainWindow):
         self.menu.btn_prisoners_list.clicked.connect(self.show_prisoners_list)
         self.menu.btn_relatives_list.clicked.connect(self.show_relatives_list)
         self.menu.btn_register_fingerprint.clicked.connect(self.show_register_fp)
+        self.menu.btn_book_by_id_card.clicked.connect(self.show_book_by_id)
+        self.menu.btn_book_by_fp.clicked.connect(self.show_book_by_fp)
+        self.menu.btn_daily_report.clicked.connect(self.show_dialy_report)
+        self.menu.btn_monthly_report.clicked.connect(self.show_monthly_report)
+        self.menu.btn_special_report.clicked.connect(self.show_special_report)
         
         # สร้าง QFrame สำหรับ main content
         self.main_content = QFrame()
@@ -103,6 +114,42 @@ class MAINWINDOW(QMainWindow):
             if widget:
                 widget.setParent(None)
         self.main_content.layout().addWidget(Register_Fingerprint(user_role = self.user_role))
+
+    def show_book_by_id(self):
+        for i in reversed(range(self.main_content.layout().count())):
+            widget = self.main_content.layout().itemAt(i).widget()
+            if widget:
+                widget.setParent(None)
+        self.main_content.layout().addWidget(Book_By_National_ID())
+
+    def show_book_by_fp(self):
+        for i in reversed(range(self.main_content.layout().count())):
+            widget = self.main_content.layout().itemAt(i).widget()
+            if widget:
+                widget.setParent(None)
+        self.main_content.layout().addWidget(Book_By_Fingerprint())
+
+    def show_dialy_report(self):
+        
+        for i in reversed(range(self.main_content.layout().count())):
+            widget = self.main_content.layout().itemAt(i).widget()
+            if widget:
+                widget.setParent(None)
+        self.main_content.layout().addWidget(Dialy_Report())
+
+    def show_monthly_report(self):
+        for i in reversed(range(self.main_content.layout().count())):
+            widget = self.main_content.layout().itemAt(i).widget()
+            if widget:
+                widget.setParent(None)
+        self.main_content.layout().addWidget(Monthly_Report())
+
+    def show_special_report(self):
+        for i in reversed(range(self.main_content.layout().count())):
+            widget = self.main_content.layout().itemAt(i).widget()
+            if widget:
+                widget.setParent(None)
+        self.main_content.layout().addWidget(Spacial_Report())
 
     def init_menu(self):
         menubar = self.menuBar()

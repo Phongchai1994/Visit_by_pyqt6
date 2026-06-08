@@ -33,10 +33,10 @@ class MENU_FRAME(QFrame):
         layout.addWidget(self.btn_register_fingerprint)
 
         self.lb_book_visit = self.create_section_label('จองเยี่ยม')
-        self.btn_book_visit = QPushButton('จองเยี่ยมญาติ')
+        self.btn_book_by_fp = QPushButton('จองเยี่ยมญาติ')
         self.btn_book_by_id_card = QPushButton('จองเยี่ยมด้วยเลขบัตรฯ')
         layout.addWidget(self.lb_book_visit)
-        layout.addWidget(self.btn_book_visit)
+        layout.addWidget(self.btn_book_by_fp)
         layout.addWidget(self.btn_book_by_id_card)
 
         self.lb_report = self.create_section_label('รายงาน')
@@ -75,7 +75,7 @@ class MENU_FRAME(QFrame):
             self.btn_relatives_list.hide()
             self.btn_register_fingerprint.hide()
             self.lb_book_visit.hide()
-            self.btn_book_visit.hide()
+            self.btn_book_by_fp.hide()
             self.btn_book_by_id_card.hide()
         elif self.user_role == 'visit':
             print('visit')

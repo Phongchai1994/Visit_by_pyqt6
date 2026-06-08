@@ -17,7 +17,7 @@ from PyQt6.QtCore import Qt, QRegularExpression
 from PyQt6.QtGui import QRegularExpressionValidator
 from db.db import POSTGRESQL
 from ui.alert_box import AlertBox
-from utils.date_convers import date_convers
+from utils.date_convers import DATE_STR
 from ui.list_popup import List_popup
 
 def read_card():
@@ -181,8 +181,8 @@ class Register_Fingerprint(QWidget):
         rel_tel = relative_data[5]
         rel_status = relative_data[6]
         rel_user_insert = relative_data[7]
-        rel_time_insert = date_convers(relative_data[8])
-        rel_time_update = '-' if relative_data[9] is None else date_convers(relative_data[9])
+        rel_time_insert = DATE_STR.date_full(relative_data[8])
+        rel_time_update = '-' if relative_data[9] is None else DATE_STR.date_full(relative_data[9])
 
         self.group_relative_detail.show()
         self.group_fingerprint_detail.show()
@@ -202,8 +202,8 @@ class Register_Fingerprint(QWidget):
         self.btn_close.clicked.connect(self.clear_old_relative_detail)
    
     def manage_fingerprint(self, relative_data):
-        dialog_popup = List_popup(self)
-        dialog_popup.show_detail_fingerprint(relative_data = relative_data, title = 'ลงทะเบียนลายนิ้วมือ')
+        from devices.regis_fp import Fingerprint_Register_Dialog
+        dialog_popup = Fingerprint_Register_Dialog(relative_data)
         dialog_popup.exec()
 
     def clear_old_relative_detail(self):

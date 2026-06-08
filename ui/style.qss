@@ -1,5 +1,5 @@
 QMenu{
-    font-family: 'Sarabun', Arial, sans-serif;
+    font-family: 'Sarabun';
 }
 
 /* ไฟล์ login.py */
@@ -7,7 +7,7 @@ QMenu{
 QWidget#Qwidget_login{
     background-color: #fff;
     color: #222;
-    font-family: 'Sarabun', Arial, sans-serif;
+    font-family: 'Sarabun';
     font-size: 14px;
 }
 
@@ -59,7 +59,7 @@ QFrame#menu_frame {
     border: 1.5px solid #e0e0e0;
     border-radius: 10px;
     margin: 10px 1px 10px 10px;
-    font-family: 'Sarabun', Arial, sans-serif;
+    font-family: 'Sarabun';
 }
 
 QFrame#menu_frame QPushButton{
@@ -99,12 +99,12 @@ QWidget#prisoner_register_widget {
     border: 1.5px solid #e0e0e0;
     border-radius: 10px;
     margin: 10px 10px 10px 1px;
-    font-family: 'Sarabun', Arial, sans-serif;
+    font-family: 'Sarabun';
     font-size: 14px;
 }
 QWidget#prisoner_register_widget QLabel{
     color: #333;
-    font-family: 'Sarabun', Arial, sans-serif;
+    font-family: 'Sarabun';
     font-weight: bold;
     font-size: 14px;
 
@@ -253,7 +253,7 @@ QWidget#prisoner_register_widget QComboBox QAbstractItemView::item:hover {
 /* ไฟล์ alert_box.py*/
 QMessageBox#appMessageBox {
     background-color: #f5f6fa;
-    font-family: 'Sarabun', Arial, sans-serif;
+    font-family: 'Sarabun';
     font-size: 14px;
 }
 
@@ -365,7 +365,7 @@ QDialog#list_popup QPushButton#btn_save {
     border: 2px solid #1565c0;
     border-radius: 6px;
     padding: 8px 28px;
-    font-family: 'Sarabun', Arial, sans-serif;
+    font-family: 'Sarabun';
     font-size: 16px;
     font-weight: bold;
 }
@@ -388,7 +388,7 @@ QDialog#list_popup QPushButton#btn_delete {
     border: 1px solid #6f1616;
     border-radius: 6px;
     padding: 7px 16px;
-    font-family: 'Sarabun', Arial, sans-serif;
+    font-family: 'Sarabun';
     font-size: 14px;
     font-weight: bold;
     min-width: 100px;
@@ -420,14 +420,14 @@ QWidget#main_relative_list_widget {
     border: 1.5px solid #e0e0e0;
     border-radius: 10px;
     margin: 10px 10px 10px 1px;
-    font-family: 'Sarabun', Arial, sans-serif;
+    font-family: 'Sarabun';
     font-size: 14px;
 }
 
 QWidget#main_relative_list_widget QLabel {
     color: #333;
     font-weight: bold;
-    font-family: 'Sarabun', Arial, sans-serif;               
+    font-family: 'Sarabun';               
     font-size: 14px;
 }
 
@@ -559,14 +559,14 @@ QWidget#main_prisoner_list_widget {
     border: 1.5px solid #e0e0e0;
     border-radius: 10px;
     margin: 10px 10px 10px 1px;
-    font-family: 'Sarabun', Arial, sans-serif;
+    font-family: 'Sarabun';
     font-size: 14px;
 }
 
 QWidget#main_prisoner_list_widget QLabel {
     color: #333;
     font-weight: bold;
-    font-family: 'Sarabun', Arial, sans-serif;               
+    font-family: 'Sarabun';               
     font-size: 14px;
 }
 
@@ -697,21 +697,21 @@ QWidget#Register_Fingerprint {
     border: 1.5px solid #e0e0e0;
     border-radius: 10px;
     margin: 10px 10px 10px 1px;
-    font-family: 'Sarabun', Arial, sans-serif;
+    font-family: 'Sarabun';
     font-size: 14px;
 }
 
 QWidget#Register_Fingerprint QLabel {
     color: #333;
     font-weight: bold;
-    font-family: 'Sarabun', Arial, sans-serif;               
+    font-family: 'Sarabun';               
     font-size: 14px;
 }
 
 /*########   class prisoners_list_popup ###########*/
 
 QDialog#list_popup QLabel#time_status_update {
-    font-family: 'Sarabun', Arial, sans-serif;
+    font-family: 'Sarabun';
     font-size: 12px; 
     font-weight: bold; 
     color: #020203; 
@@ -719,7 +719,7 @@ QDialog#list_popup QLabel#time_status_update {
 }
 
 QDialog#list_popup QLabel#header_label {
-    font-family: 'Sarabun', Arial, sans-serif;
+    font-family: 'Sarabun';
     font-size: 18px; 
     font-weight: bold; 
     color: #020203; 
@@ -757,10 +757,34 @@ QDialog#list_popup QLabel#Qlabel_lbl_none{
     color: #b71c1c;
 }
 
+/*########   class Book_By_National_ID ###########*/
+
+QWidget#Book_By_National_ID {
+    background: #fff;
+    color: #222;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 10px;
+    margin: 10px 10px 10px 1px;
+    font-family: 'Sarabun';
+    font-size: 14px;
+}
+
+/*########   class Book_By_Fingerprint ###########*/
+
+QWidget#Book_By_Fingerprint {
+    background: #fff;
+    color: #222;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 10px;
+    margin: 10px 10px 10px 1px;
+    font-family: 'Sarabun';
+    font-size: 14px;
+}
+
 /*########  add relative ###########*/
 
 QPushButton#Qpush_input_btn_read_card{
-    font-family: 'Sarabun', Arial, sans-serif;
+    font-family: 'Sarabun';
     background-color: #1a237e;
     color: #fff;
     border: 2px solid #3949ab;

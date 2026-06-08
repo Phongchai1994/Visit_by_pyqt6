@@ -19,7 +19,7 @@ from PyQt6.QtGui import QRegularExpressionValidator
 from devices.card_reader import ThaiIDReader
 from db.db import POSTGRESQL
 from ui.alert_box import AlertBox
-from utils.date_convers import date_convers
+from utils.date_convers import DATE_STR
 
 import os
 import traceback
@@ -69,7 +69,7 @@ class List_popup(QDialog):
                 value = str(prisoner[i])
                 if i == 10:
                     try: 
-                        value = date_convers(value)
+                        value = DATE_STR().date_full(value)
                     except Exception as e:
                         pass  # ถ้าแปลงไม่ได้ ให้แสดงค่าดิบ
             lbl_key = QLabel(label + " :")
@@ -456,7 +456,7 @@ class List_popup(QDialog):
         btn_close.clicked.connect(lambda:self.close())
         btn_save.clicked.connect(lambda: save_edit_data_prisoner_to_db())
 
-        time_status = date_convers(str(prisoner[10]))
+        time_status = DATE_STR().date_full(str(prisoner[10]))
         
         edit_id.setText(str(pri_id))
         edit_gender.setCurrentIndex(edit_gender.findText(pri_gender))
@@ -520,7 +520,7 @@ class List_popup(QDialog):
                         value = 'ยกเลิก'
                 if i == 8:
                     if relative[i]:
-                        value = date_convers(relative[i])
+                        value = DATE_STR().date_full(relative[i])
 
             lbl_key = QLabel(label + " :")
             lbl_key.setObjectName('Qlabel_lbl_key')
