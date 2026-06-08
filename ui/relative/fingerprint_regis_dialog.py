@@ -8,11 +8,14 @@ from ui.alert_box import AlertBox
 from devices.regis_fp import Fingerprint_Worker
 
 class Fingerprint_Register_Dialog(QDialog):
-    def __init__(self, relative_data ,parent = None):
+    def __init__(self, relative_data, relative_fp ,parent = None):
         super().__init__(parent)
         self.setObjectName('Fingerprint_Register_Dialog')
         self.db = POSTGRESQL()
         self.relative_data = relative_data
+        self.relative_fp = relative_fp
+        fp_name = self.relative_fp[0][0]
+        # print(f'fingerprint = {self.relative_fp}',fp_name)
         self.template_bytes = None
         self.worker = None
 
@@ -33,14 +36,14 @@ class Fingerprint_Register_Dialog(QDialog):
         form = QFormLayout()
         self.lbl_relative_id = QLabel(str(relative_data[0]))
         self.lbl_name = QLabel(f"{relative_data[1]}{relative_data[2]} {relative_data[3]}")
-        self.lbl_fp_status = QLabel("ลงทะเบียนแล้ว" if relative_data[6] else "ไม่ลงทะเบียน")
+        self.lbl_fp_status = QLabel(f'ลงทะเบียนนิ้ว "{fp_name}"' if relative_data[6] else "ไม่ลงทะเบียน")
 
         self.finger_name = QComboBox()
         self.finger_name.addItems([
             "นิ้วโป้งซ้าย", "ชี้ซ้าย", "กลางซ้าย", "นางซ้าย", "ก้อยซ้าย",
             "นิ้วโป้งขวา", "ชี้ขวา", "กลางขวา", "นางขวา", "ก้อยขวา"
         ])
-
+        self.finger_name.setCurrentText(fp_name)
         self.status_box = QTextEdit()
         self.status_box.setReadOnly(True)
         self.status_box.setFixedHeight(120)

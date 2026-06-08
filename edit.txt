@@ -1,0 +1,22 @@
+แก้ไขการบันทึกลายนิ้วมือให้บันทึกได้ลายน้ิวมือเดียว
+
+    @log_db_exceptions
+    def upsert_relative_fingerprint(self, relative_id, finger_name, fingerprint_bytes, is_active = True):
+        '''
+        '''
+        with self.conn.cursor() as cur:
+            cur.execute(
+                '''
+                INSERT INTO relative_fingerprints(
+                    relative_id, finger_name, fingerprint, is_active, created_at
+                ) 
+                VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
+                ON CONFLICT (relative_id, finger_name) DO UPDATE SET
+                    finger_name = EXCLUDED.finger_name,
+                    fingerprint = EXCLUDED.fingerprint,
+                    is_active = EXCLUDED.is_active,
+                    updated_at = CURRENT_TIMESTAMP
+                ''',
+                (relative_id, finger_name, Binary(fingerprint_bytes), is_active)
+            )
+            return True

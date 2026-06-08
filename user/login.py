@@ -46,6 +46,13 @@ class LOGIN(QWidget):
         self.label_password = QLabel('Password')
         self.input_password = QLineEdit()
         self.input_password.setEchoMode(QLineEdit.EchoMode.Password)
+
+        # ใส่ user_name กับ รหัสผ่าน
+        # 
+        self.input_user.setText('admin')
+        self.input_password.setText('066986')
+
+        self.input_user.returnPressed.connect(self.handle_login)
         self.input_password.returnPressed.connect(self.handle_login)
 
         self.btn_login = QPushButton('Login')

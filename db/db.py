@@ -50,7 +50,7 @@ class POSTGRESQL():
                     REFERENCES public.relatives(relative_id)
                     ON DELETE RESTRICT,
                 CONSTRAINT relative_fingerprints_unique
-                    UNIQUE (relative_id, finger_name)
+                    UNIQUE (relative_id)
             )
             """,
             """
@@ -262,7 +262,6 @@ class POSTGRESQL():
                     status = EXCLUDED.status,
                     disciplinary = EXCLUDED.disciplinary,
                     "timestamp" = CURRENT_TIMESTAMP
-
                 """,(prisoner_id, sex, f_name, l_name, lawsuit, level, dan, type_, status, disciplinary)
             )
         return True
@@ -395,14 +394,17 @@ class POSTGRESQL():
 
     @log_db_exceptions
     def upsert_relative_fingerprint(self, relative_id, finger_name, fingerprint_bytes, is_active = True):
+        '''
+        '''
         with self.conn.cursor() as cur:
             cur.execute(
                 '''
                 INSERT INTO relative_fingerprints(
                     relative_id, finger_name, fingerprint, is_active, created_at
-                ) 
+                )
                 VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
-                ON CONFLICT (relative_id, finger_name) DO UPDATE SET
+                ON CONFLICT (relative_id) DO UPDATE SET
+                    finger_name = EXCLUDED.finger_name,
                     fingerprint = EXCLUDED.fingerprint,
                     is_active = EXCLUDED.is_active,
                     updated_at = CURRENT_TIMESTAMP

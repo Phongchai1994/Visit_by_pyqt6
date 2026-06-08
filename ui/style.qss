@@ -781,6 +781,43 @@ QWidget#Book_By_Fingerprint {
     font-size: 14px;
 }
 
+/*########   class Dialy_Report ###########*/
+
+QWidget#Dialy_Report {
+    background: #fff;
+    color: #222;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 10px;
+    margin: 10px 10px 10px 1px;
+    font-family: 'Sarabun';
+    font-size: 14px;
+}
+
+/*########   class Monthly_Report ###########*/
+
+QWidget#Monthly_Report {
+    background: #fff;
+    color: #222;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 10px;
+    margin: 10px 10px 10px 1px;
+    font-family: 'Sarabun';
+    font-size: 14px;
+}
+
+/*########   class Spacial_Report ###########*/
+
+QWidget#Spacial_Report {
+    background: #fff;
+    color: #222;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 10px;
+    margin: 10px 10px 10px 1px;
+    font-family: 'Sarabun';
+    font-size: 14px;
+}
+
+
 /*########  add relative ###########*/
 
 QPushButton#Qpush_input_btn_read_card{

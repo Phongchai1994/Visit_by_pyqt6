@@ -20,12 +20,7 @@ from ui.alert_box import AlertBox
 from utils.date_convers import DATE_STR
 from ui.list_popup import List_popup
 
-def read_card():
-    from devices.card_reader import ThaiIDReader
-    card_reader_device = ThaiIDReader()
-    card_reader_device.read_card()
-    info = card_reader_device.get_person_info()
-    return info
+
 
 
 class Register_Fingerprint(QWidget):
@@ -33,6 +28,8 @@ class Register_Fingerprint(QWidget):
         super().__init__()
         self.user_role = user_role
         self.db = POSTGRESQL()
+        self.relative_data = None
+        self.relative_fp = None
 
         self.setObjectName('Register_Fingerprint')
         self.main_layout = QVBoxLayout(self)
@@ -66,9 +63,9 @@ class Register_Fingerprint(QWidget):
         self.input_id = QLineEdit()
         self.input_id.setValidator(QRegularExpressionValidator(regex))
         self.input_id.setPlaceholderText('ป้อนหมายเลขฯ แล้วกด Enter')
-        self.input_id.returnPressed.connect(lambda: self.get_id_on_readcard('enter'))
+        self.input_id.returnPressed.connect(lambda: self.check_the_info('enter'))
         self.btn_get_id = QPushButton('ดึงข้อมูลจากบัตรฯ')
-        self.btn_get_id.released.connect(lambda: self.get_id_on_readcard('button'))
+        self.btn_get_id.released.connect(lambda: self.check_the_info('button'))
         search_layout.addWidget(self.input_id, 0 , 0)
         search_layout.addWidget(self.btn_get_id, 0, 1)
         group_input_id.setLayout(search_layout)
@@ -96,16 +93,16 @@ class Register_Fingerprint(QWidget):
         self.label_time_update = QLabel()
         self.label_user_insert = QLabel()
 
-        self.form.addRow('หมายเลขบัตรฯ ', self.label_id)
-        self.form.addRow('คำนำหน้า', self.label_title)
-        self.form.addRow('ชื่อ', self.label_f_name)
-        self.form.addRow('นามสกุล', self.label_l_name)
-        self.form.addRow('ที่อยู่', self.label_address)
-        self.form.addRow('เบอร์โทร', self.label_tel)
-        self.form.addRow('สถานะ', self.label_status)
-        self.form.addRow('วันที่เพิ่มข้อมูล', self.label_time_insert)
-        self.form.addRow('วันที่อัพเดทล่าสุด', self.label_time_update)
-        self.form.addRow('เพิ่มโดย', self.label_user_insert)
+        self.form.addRow('หมายเลขบัตรฯ :', self.label_id)
+        self.form.addRow('คำนำหน้า :', self.label_title)
+        self.form.addRow('ชื่อ :', self.label_f_name)
+        self.form.addRow('นามสกุล :', self.label_l_name)
+        self.form.addRow('ที่อยู่ :', self.label_address)
+        self.form.addRow('เบอร์โทร :', self.label_tel)
+        self.form.addRow('สถานะ :', self.label_status)
+        self.form.addRow('วันที่เพิ่มข้อมูล :', self.label_time_insert)
+        self.form.addRow('วันที่อัพเดทล่าสุด :', self.label_time_update)
+        self.form.addRow('เพิ่มโดย :', self.label_user_insert)
 
         self.group_relative_detail.setLayout(self.form)
 
@@ -115,6 +112,10 @@ class Register_Fingerprint(QWidget):
         self.btn_regis = QPushButton('ลงทะเบียน')
         self.grid_layout_finger_detail.addWidget(self.btn_regis, 1 , 1, alignment=Qt.AlignmentFlag.AlignRight)
         self.group_fingerprint_detail.setLayout(self.grid_layout_finger_detail)
+        # สร้างตัวแสดงนิ้วที่ลงทะเบียนไว้ล่วงหน้า
+        self.label_fp_name = QLabel('ไม่พบลายนิ้วมือ')
+        self.grid_layout_finger_detail.addWidget(QLabel('นิ้วที่ลงทะเบียน : '), 0, 0, Qt.AlignmentFlag.AlignRight)
+        self.grid_layout_finger_detail.addWidget(self.label_fp_name, 0, 1, Qt.AlignmentFlag.AlignLeft)
 
         self.group_button = QGroupBox()
         self.group_button.setMinimumWidth(420)
@@ -130,14 +131,15 @@ class Register_Fingerprint(QWidget):
 
         self.group_relative_detail.hide()
         self.group_fingerprint_detail.hide()
-        self.group_button.hide()   
+        self.group_button.hide()
 
-    def get_id_on_readcard(self, trigger):
+    def check_the_info(self, trigger):
         self.create_ui_relative_data()
         relative_id = None
         #  ตรวจสอบการกด button or enter
         if trigger == 'button':
             try: 
+                from devices.read_card import read_card
                 info_card = read_card()
                 self.input_id.setText(str(info_card['cid']))
                 relative_id = info_card['cid']
@@ -156,33 +158,28 @@ class Register_Fingerprint(QWidget):
         if relative_id:
             self.input_id.setReadOnly(True)
             try:
-                relative_data = self.db.get_relative_data(relative_id=relative_id)
-                fingerprint_data = self.db.get_relative_fingerprint_return_fp_name(relative_id=relative_id)
+                self.relative_data = self.db.get_relative_data(relative_id=relative_id)
+                self.relative_fp = self.db.get_relative_fingerprint_return_fp_name(relative_id=relative_id)
             except Exception as e:
                 pass
         # print(relative_data)
-        if fingerprint_data:
-            label_fp_name = QLabel(fingerprint_data[0][0])
-            self.grid_layout_finger_detail.addWidget(QLabel('นิ้วที่ลงทะเบียน : '), 0, 0, Qt.AlignmentFlag.AlignRight)
-            self.grid_layout_finger_detail.addWidget(label_fp_name, 0, 1, Qt.AlignmentFlag.AlignLeft)
-            # print(fingerprint_data)
-            # print(fingerprint_data[0])
+        if self.relative_fp is not None:
+            self.label_fp_name.setText(self.relative_fp[0][0])
         else:
-            label = QLabel('ไม่พบลายนิ้วมือ')
-            self.grid_layout_finger_detail.addWidget(label, 0, 0, alignment=Qt.AlignmentFlag.AlignCenter)
+            self.label_fp_name.setText('ไม่พบลายนิ้วมือ')
         self.btn_get_id.setEnabled(False)
 
 
-        rel_id = relative_data[0]
-        rel_title = relative_data[1]
-        rel_f_name = relative_data[2]
-        rel_l_name = relative_data[3]
-        rel_address = relative_data[4]
-        rel_tel = relative_data[5]
-        rel_status = relative_data[6]
-        rel_user_insert = relative_data[7]
-        rel_time_insert = DATE_STR.date_full(relative_data[8])
-        rel_time_update = '-' if relative_data[9] is None else DATE_STR.date_full(relative_data[9])
+        rel_id = self.relative_data[0]
+        rel_title = self.relative_data[1]
+        rel_f_name = self.relative_data[2]
+        rel_l_name = self.relative_data[3]
+        rel_address = self.relative_data[4]
+        rel_tel = self.relative_data[5]
+        rel_status = self.relative_data[6]
+        rel_user_insert = self.relative_data[7]
+        rel_time_insert = DATE_STR.date_full(self.relative_data[8])
+        rel_time_update = '-' if self.relative_data[9] is None else DATE_STR.date_full(self.relative_data[9])
 
         self.group_relative_detail.show()
         self.group_fingerprint_detail.show()
@@ -198,13 +195,19 @@ class Register_Fingerprint(QWidget):
         self.label_time_insert.setText(rel_time_insert)
         self.label_time_update.setText(rel_time_update)
         self.label_user_insert.setText(rel_user_insert)
-        self.btn_regis.clicked.connect(lambda: self.manage_fingerprint(relative_data=relative_data))
+        self.btn_regis.clicked.connect(lambda: self.manage_fingerprint(relative_data=self.relative_data, relative_fp=self.relative_fp))
         self.btn_close.clicked.connect(self.clear_old_relative_detail)
    
-    def manage_fingerprint(self, relative_data):
-        from devices.regis_fp import Fingerprint_Register_Dialog
-        dialog_popup = Fingerprint_Register_Dialog(relative_data)
+    def manage_fingerprint(self, relative_data, relative_fp):
+        relative_id = relative_data[0]
+        from ui.relative.fingerprint_regis_dialog import Fingerprint_Register_Dialog
+        dialog_popup = Fingerprint_Register_Dialog(relative_data, relative_fp)
         dialog_popup.exec()
+        self.relative_fp = self.db.get_relative_fingerprint_return_fp_name(relative_id=relative_id)
+        if self.relative_fp:
+            self.label_fp_name.setText(self.relative_fp[0][0])
+        else:
+            self.label_fp_name.setText('ไม่พบลายนิ้วมือ')
 
     def clear_old_relative_detail(self):
         self.input_id.clear()
