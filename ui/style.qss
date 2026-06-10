@@ -769,6 +769,18 @@ QWidget#Book_By_National_ID {
     font-size: 14px;
 }
 
+QWidget#Book_By_National_ID QLabel{
+    font-size: 14px;
+}
+
+QWidget#Book_By_National_ID #Book_By_National_ID_title_label{
+    font-size: 22px;
+    font-weight: bold;
+    color: #000000;
+    margin-bottom: 1px;
+    margin-top: 10px;
+}
+
 /*########   class Book_By_Fingerprint ###########*/
 
 QWidget#Book_By_Fingerprint {
@@ -781,6 +793,13 @@ QWidget#Book_By_Fingerprint {
     font-size: 14px;
 }
 
+QWidget#Book_By_Fingerprint #Book_By_Fingerprint_title_label{
+    font-size: 22px;
+    font-weight: bold;
+    color: #000000;
+    margin-bottom: 1px;
+    margin-top: 10px;
+}
 /*########   class Dialy_Report ###########*/
 
 QWidget#Dialy_Report {

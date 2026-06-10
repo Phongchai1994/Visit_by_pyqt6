@@ -22,6 +22,20 @@ from utils.date_convers import DATE_STR
 class Book_By_National_ID(QWidget):
     def __init__(self):
         super().__init__()
+        self.group_relative_detail = None
+        self.group_relations_detail = None
+        self.group_button = None
+        self.btn_booking = None
+        self.btn_close = None
+        self.form = None
+        self.form_relations = None
+        self.label_id = None
+        self.label_title = None
+        self.label_f_name = None
+        self.label_l_name = None
+        self.label_address = None
+        self.label_tel = None
+        self.label_status = None
         self.db = POSTGRESQL()
 
         self.setObjectName('Book_By_National_ID')
@@ -59,18 +73,17 @@ class Book_By_National_ID(QWidget):
         self.input_id = QLineEdit()
         self.input_id.setValidator(QRegularExpressionValidator(regex))
         self.input_id.setPlaceholderText('ป้อนหมายเลขฯ แล้วกด Enter')
-        self.input_id.returnPressed.connect(lambda: self.get_id_on_readcard('enter'))
+        self.input_id.returnPressed.connect(lambda: self.verify_input_id('enter'))
         self.btn_get_id = QPushButton('ดึงข้อมูลจากบัตรฯ')
-        self.btn_get_id.released.connect(lambda: self.get_id_on_readcard('button'))
+        self.btn_get_id.released.connect(lambda: self.verify_input_id('button'))
         search_layout.addWidget(self.input_id, 0 , 0)
         search_layout.addWidget(self.btn_get_id, 0, 1)
         group_input_id.setLayout(search_layout)
         self.main_layout.addWidget(group_input_id, 0, Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
 
 
-    def get_id_on_readcard(self, trigger):
+    def verify_input_id(self, trigger):
         self.create_ui_relative_data()
-
         relative_id = None
         #  ตรวจสอบการกด button or enter
         if trigger == 'button':
@@ -92,7 +105,6 @@ class Book_By_National_ID(QWidget):
             return
         
         if relative_id:
-            self.input_id.setReadOnly(True)
             try:
                 relative_data = self.db.get_relative_data(relative_id=relative_id)
                 relations_data = self.db.get_prisoners_from_relative_id(relative_id=relative_id)
@@ -103,7 +115,7 @@ class Book_By_National_ID(QWidget):
         if not relative_data:
             AlertBox.error(self, 'Book_By_National_ID', 'ไม่พบข้อมูล' )
             return
-        
+        self.input_id.setReadOnly(True)
         for i, value in enumerate(relations_data, 1):
             disciplinary_text = '-'
             if value[7] is not None and str(value[7]).strip().lower() != 'none':
@@ -152,6 +164,7 @@ class Book_By_National_ID(QWidget):
         self.label_tel.setText(str(rel_tel))
         self.label_status.setText('ใช้งานอยู่' if rel_status else 'ยกเลิกแล้ว')
 
+        self.btn_booking.clicked.connect(self.handle_booking)
         self.btn_close.clicked.connect(self.clear_old_detail)
 
     def create_ui_relative_data(self):
@@ -182,7 +195,6 @@ class Book_By_National_ID(QWidget):
 
         self.group_relative_detail.setLayout(self.form)
 
-
         self.group_relations_detail = QGroupBox('ข้อมูลความสัมพันธ์')
         self.group_relations_detail.setMinimumWidth(420)
 
@@ -195,9 +207,10 @@ class Book_By_National_ID(QWidget):
 
         self.group_button = QGroupBox()
         self.group_button.setMinimumWidth(420)
-
+        self.btn_booking = QPushButton('จองเยี่ยม')
         self.btn_close = QPushButton('เสร็จสิ้น')
         vbox_in_groupbox = QVBoxLayout()
+        vbox_in_groupbox.addWidget(self.btn_booking)
         vbox_in_groupbox.addWidget(self.btn_close)
         self.group_button.setLayout(vbox_in_groupbox)
         
@@ -227,3 +240,21 @@ class Book_By_National_ID(QWidget):
             self.main_layout.removeWidget(self.group_button)
             self.group_button.deleteLater()
             self.group_button = None
+
+    def handle_booking(self):
+        from ui.book_visit.booking import Booking
+        prisoner_data = ['id','ชื่อ','สกุล','ชั้น','แดน','5', '6','ประเภท']
+        relative_data = ['1560100345135', 'คำนำหน้า', 'ชื่อญาติ', 'สกุลญาติ']
+        booking = Booking(
+            prisoner_data=prisoner_data, relative_data=relative_data, reserve_now=True
+        )
+        booking.exec()
+
+
+
+
+
+
+
+
+
