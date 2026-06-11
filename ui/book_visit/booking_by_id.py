@@ -17,7 +17,7 @@ from PyQt6.QtGui import QRegularExpressionValidator
 from db.db import POSTGRESQL
 from ui.alert_box import AlertBox
 from utils.date_convers import DATE_STR
-
+from datetime import datetime, timedelta
 
 class Book_By_National_ID(QWidget):
     def __init__(self):
@@ -36,6 +36,8 @@ class Book_By_National_ID(QWidget):
         self.label_address = None
         self.label_tel = None
         self.label_status = None
+        self.relative_id = None
+        self.relative_data = None
         self.db = POSTGRESQL()
 
         self.setObjectName('Book_By_National_ID')
@@ -106,17 +108,17 @@ class Book_By_National_ID(QWidget):
         
         if relative_id:
             try:
-                relative_data = self.db.get_relative_data(relative_id=relative_id)
-                relations_data = self.db.get_prisoners_from_relative_id(relative_id=relative_id)
+                self.relative_data = self.db.get_relative_data(relative_id=relative_id)
+                prisoner_and_relation = self.db.get_prisoners_from_relative_id(relative_id=relative_id)
             except Exception as e:
-                relative_data = []
-                relations_data = []
+                self.relative_data = []
+                prisoner_and_relation = []
                 pass
-        if not relative_data:
+        if not self.relative_data:
             AlertBox.error(self, 'Book_By_National_ID', 'ไม่พบข้อมูล' )
             return
         self.input_id.setReadOnly(True)
-        for i, value in enumerate(relations_data, 1):
+        for i, value in enumerate(prisoner_and_relation, 1):
             disciplinary_text = '-'
             if value[7] is not None and str(value[7]).strip().lower() != 'none':
                 disciplinary_text = str(value[7])
@@ -144,13 +146,13 @@ class Book_By_National_ID(QWidget):
             lbl_val.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
             self.form_relations.addRow(lbl_key, lbl_val)
 
-        rel_id = relative_data[0]
-        rel_title = relative_data[1]
-        rel_f_name = relative_data[2]
-        rel_l_name = relative_data[3]
-        rel_address = relative_data[4]
-        rel_tel = relative_data[5]
-        rel_status = relative_data[6]
+        rel_id = self.relative_data[0]
+        rel_title = self.relative_data[1]
+        rel_f_name = self.relative_data[2]
+        rel_l_name = self.relative_data[3]
+        rel_address = self.relative_data[4]
+        rel_tel = self.relative_data[5]
+        rel_status = self.relative_data[6]
 
         self.group_relative_detail.show()
         self.group_relations_detail.show()
@@ -242,11 +244,11 @@ class Book_By_National_ID(QWidget):
             self.group_button = None
 
     def handle_booking(self):
+        print()
         from ui.book_visit.booking import Booking
-        prisoner_data = ['id','ชื่อ','สกุล','ชั้น','แดน','5', '6','ประเภท']
         relative_data = ['1560100345135', 'คำนำหน้า', 'ชื่อญาติ', 'สกุลญาติ']
         booking = Booking(
-            prisoner_data=prisoner_data, relative_data=relative_data, reserve_now=True
+            relative_data=relative_data
         )
         booking.exec()
 

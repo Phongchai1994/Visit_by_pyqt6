@@ -1,22 +1,269 @@
-แก้ไขการบันทึกลายนิ้วมือให้บันทึกได้ลายน้ิวมือเดียว
+        self.a_followers = QGroupBox('เลือกผู้ติดตาม')
+User: ประกาศตัวแปร self. ไว้ แต่ไม่ได้ใช้เป็นอะไรไหม
 
-    @log_db_exceptions
-    def upsert_relative_fingerprint(self, relative_id, finger_name, fingerprint_bytes, is_active = True):
-        '''
-        '''
-        with self.conn.cursor() as cur:
-            cur.execute(
-                '''
-                INSERT INTO relative_fingerprints(
-                    relative_id, finger_name, fingerprint, is_active, created_at
-                ) 
-                VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP)
-                ON CONFLICT (relative_id, finger_name) DO UPDATE SET
-                    finger_name = EXCLUDED.finger_name,
-                    fingerprint = EXCLUDED.fingerprint,
-                    is_active = EXCLUDED.is_active,
-                    updated_at = CURRENT_TIMESTAMP
-                ''',
-                (relative_id, finger_name, Binary(fingerprint_bytes), is_active)
-            )
-            return True
+GitHub Copilot: ไม่เป็นปัญหากับการรันโดยตรงครับ การประกาศ `self.prisoner_and_relation = None` และ `self.relative_data = None` ใน booking_by_id.py เป็นแค่การเตรียม attribute ไว้ก่อนใช้ ไม่ทำให้โปรแกรมพัง
+
+แต่ถ้า “ประกาศแล้วไม่เคยใช้จริง” มันจะเป็นแค่โค้ดเกิน และทำให้คนอ่านสับสนได้ ควรมีไว้เฉพาะกรณีที่ตั้งใจเก็บสถานะของ object นี้ เช่นใน `verify_input_id()` ที่คุณเอาไปใส่ค่าจากฐานข้อมูลแล้วใช้ต่อใน `handle_booking()` แปลว่า 2 ตัวนี้มีเหตุผลที่จะเป็น `self.` อยู่ครับ
+
+สรุปสั้น ๆ:
+- ถ้าใช้เก็บ state ระหว่างเมธอด: ปกติและเหมาะสม
+- ถ้าไม่ได้ใช้จริงเลย: ลบได้เพื่อลดความรก
+- ถ้าประกาศเฉพาะใน `__init__` แต่ใช้แค่ภายในเมธอดเดียว: อาจไม่จำเป็นต้องเป็น `self.`
+
+ถ้าต้องการ ผมช่วยไล่ว่าตัวแปร `self.` ตัวไหนในไฟล์นี้ควรเก็บไว้ และตัวไหนควรเปลี่ยนเป็นตัวแปรชั่วคราวได้ครับ
+
+User: self. ของ QDialog สามารถใส่ self.time_label ได้เลยไหม
+
+GitHub Copilot: ได้ครับ `QDialog` เป็นแค่คลาสแม่ คุณสามารถใส่ `self.time_label` เป็น attribute ของคลาสลูกอย่าง `Booking` ได้เลย เช่นใน booking.py ที่ทำ `self.time_label = QLabel(...)` นี่ถูกต้อง
+
+แต่มี 2 จุดที่ควรแยกให้ชัด:
+- `self.time_label` เป็นตัวแปรของอ็อบเจกต์ `Booking` ไม่ใช่ property พิเศษของ `QDialog`
+- ถ้าเป็น `QLabel` แล้วไม่ได้ `addWidget` เข้า layout มันจะยังไม่แสดงผลบนหน้าจอ
+
+ถ้าคุณหมายถึง “เก็บค่าเวลาไว้เฉย ๆ” ก็ใช้ `self.time_label` ได้เหมือนกัน แต่ถ้าไม่ได้จะเอาไปแสดงเป็น widget จริง ๆ อาจใช้ชื่อแบบ `self.time_text` หรือ `self.current_time_text` จะสื่อความชัดกว่า
+
+ถ้าต้องการ ผมช่วยดูต่อได้ว่า `self.time_label` ในไฟล์นี้ควรเอาไปวางใน layout ตรงไหนถึงจะแสดงผลครับ
+
+User: หมายถึงเพิ่ม widget self.time_label เข้าไปใน Qdialog
+
+GitHub Copilot: ได้ครับ เพิ่มได้โดยตรง และกรณีนี้ควรเพิ่มผ่าน layout ของ booking.py ไม่ใช่แค่ประกาศ `self.time_label` ไว้เฉย ๆ
+
+ตอนนี้คุณสร้าง `self.time_label = QLabel(...)` แล้ว แต่ใน `choose_a_booking()` ยังไม่ได้เอาไป `addWidget()` เข้า `QVBoxLayout(self)` เลย จึงยังไม่แสดงบน dialog. ถ้าต้องการให้ขึ้นบนหน้าจอ ให้ทำประมาณนี้ใน `choose_a_booking()`:
+
+```python
+layout.addWidget(self.time_label)
+```
+
+ตำแหน่งที่เหมาะคือก่อนปุ่มเลือกจอง/ปุ่มยกเลิก เช่นใน booking.py ภายใน `choose_a_booking()`.
+
+สรุปคือ:
+- `self.time_label` เป็น widget ของ `Booking(QDialog)` ได้เลย
+- ต้องเอาไปใส่ใน layout ด้วย `addWidget()`
+- ถ้าไม่ใส่ layout มันจะไม่แสดงผลแม้สร้างไว้แล้ว
+
+ถ้าต้องการ ผมช่วยชี้ตำแหน่งที่ควรแทรกในฟังก์ชัน `choose_a_booking()` ให้แบบตรงบรรทัดได้ครับ
+
+User: self.time_label = QLabel(f"วัน {day} ที่ {current_time.tm_mday} {month} {(current_time.tm_year)+543} เวลา {t.strftime('%H:%M:%S')}")
+อัพเดทเป็น reltime
+
+GitHub Copilot: ใช่ครับ ถ้าต้องการให้เป็นแบบ realtime ไม่ควรสร้างข้อความครั้งเดียวตอน `__init__` แล้วจบ เพราะตอนนั้นค่ามันจะค้างอยู่ตามเวลาที่เปิด dialog
+
+ให้เปลี่ยนเป็นสร้าง label เปล่าไว้ก่อน แล้วอัปเดตด้วย `QTimer` ทุก 1 วินาที เช่นใน booking.py
+
+```python
+from PyQt6.QtCore import Qt, QTimer
+```
+
+```python
+def __init__(self, relative_data, parent=None):
+    super().__init__(parent)
+    ...
+    self.time_label = QLabel()
+    self.update_time_label()
+
+    self.time_timer = QTimer(self)
+    self.time_timer.timeout.connect(self.update_time_label)
+    self.time_timer.start(1000)
+```
+
+```python
+def update_time_label(self):
+    days = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"]
+    months = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน",
+              "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม",
+              "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"]
+
+    current_time = t.localtime()
+    day = days[current_time.tm_wday]
+    month = months[current_time.tm_mon - 1]
+
+    self.time_label.setText(
+        f"วัน {day} ที่ {current_time.tm_mday} {month} "
+        f"{current_time.tm_year + 543} เวลา {t.strftime('%H:%M:%S')}"
+    )
+```
+
+ถ้าคุณต้องการแค่ให้ขึ้นเวลาแบบ realtime ก็เท่านี้พอ แล้วค่อย `layout.addWidget(self.time_label)` เหมือนเดิม
+
+ถ้าต้องการ ผมช่วยปรับโค้ดส่วนนี้ให้เข้ากับโครงสร้างปัจจุบันของไฟล์นี้แบบตรง ๆ ได้ครับ
+
+User: def choose_a_booking(self): ไม่แสดงผล
+
+GitHub Copilot: กำลังไล่ดูโครง layout ใน booking.py ว่าทำไม `choose_a_booking()` ไม่ขึ้นผล และเจอจุดที่น่าจะทำให้ widget ถูกทับ layout เดิมครับ
+
+สาเหตุหลักคือใน booking.py คุณสร้าง layout ซ้ำบน `QDialog` เดียวกัน 2 ครั้ง
+
+- ใน `__init__` มี `layout = QVBoxLayout(self)` แล้วใส่ `self.time_label` เข้าไป
+- แต่ใน `choose_a_booking()` คุณสร้าง `layout = QVBoxLayout(self)` อีกรอบ
+
+พอใช้ `QVBoxLayout(self)` ซ้ำกับ widget เดิม มันทำให้ layout เดิมถูกแทน/ชนกัน และผลคือสิ่งที่ใส่ไว้ก่อนหน้าอาจไม่แสดงตามที่คาดไว้ โดยเฉพาะ `self.time_label` กับปุ่มใน `choose_a_booking()`.
+
+วิธีที่ถูกคือให้ใช้ layout เดียวพอ แล้วส่ง layout นั้นเข้าไปใน `choose_a_booking()` หรือเก็บเป็น `self.main_layout` แล้วใช้ตัวเดิมตลอด เช่นแนวคิดคือ:
+- สร้าง layout ครั้งเดียวใน `__init__`
+- ใน `choose_a_booking()` ใช้ layout เดิม ไม่ต้องสร้างใหม่
+
+อีกจุดหนึ่งคือ `choose_a_booking()` เองก็ยังไม่ได้ `addWidget(self.time_label)` ถ้าต้องการให้ label อยู่ในหน้านี้จริง ๆ ต้องใส่เข้า layout เดิมด้วย
+
+ถ้าคุณต้องการ ผมช่วยชี้โครงที่ควรปรับในไฟล์นี้แบบตรงตำแหน่งบรรทัดให้ได้ครับ
+
+User: QGroupBox เอา widget ใส่ได้ไหม
+
+GitHub Copilot: ได้ครับ `QGroupBox` ใส่ widget ได้แน่นอน แต่ต้องใส่ผ่าน layout ข้างใน ไม่ใช่ `addWidget()` ตรง ๆ กับ `QGroupBox` เอง
+
+แนวทางที่ถูกคือ:
+1. สร้าง layout ให้ `QGroupBox`
+2. `addWidget()` ของที่ต้องการลงใน layout นั้น
+3. เอา `QGroupBox` ไปใส่ใน layout ของ dialog อีกที
+
+ตัวอย่างแนวคิด:
+
+```python
+group_box = QGroupBox("เลือกการจองเยี่ยม")
+group_layout = QVBoxLayout(group_box)
+
+group_layout.addWidget(btn_book_today)
+group_layout.addWidget(btn_book_advance)
+group_layout.addWidget(btn_close_window)
+
+layout.addWidget(group_box)
+```
+
+ใน booking.py ตอนนี้ `choose_a_booking()` ยังมีปัญหาอื่นด้วย เช่นบรรทัด `group_btn_layout.` ที่ยังไม่สมบูรณ์ และมีการใช้ `btn_layout` แต่ไม่ได้ประกาศตัวแปรนี้ ทำให้ไม่แสดงผลหรือรันไม่ได้ตามที่ต้องการ
+
+ถ้าต้องการ ผมช่วยจัด `choose_a_booking()` ให้ถูกโครง PyQt6 แบบสั้น ๆ ได้ครับ
+
+User:         self.group_choose_booking.hide()
+hide() แล้ว เอา groupbox อื่นมาใส่ได้ไหม 
+
+GitHub Copilot: Searched codebase for "self.group_choose_booking.hide()
+hide() แล้ว เอา groupbox อื่นมาใส่ได้ไหม", 8 results
+
+ได้ครับ `hide()` แล้วค่อยเอา groupbox อื่นมาแสดงต่อได้เลย ถ้า groupbox ตัวนั้นถูกสร้างไว้แล้วและถูก add เข้า layout ของ dialog ตั้งแต่ก่อนหน้า
+
+ใน booking.py แนวทางนี้ใช้ได้แบบนี้:
+- self.group_choose_booking.hide()
+- self.group_other.show()
+
+เงื่อนไขสำคัญคือ:
+- groupbox ตัวใหม่ต้องมีอยู่จริงแล้ว
+- ต้องถูก add ไว้ใน layout เดียวกัน หรืออยู่ภายใต้ widget แม่เดียวกัน
+- ถ้ายังไม่เคย addWidget เข้า layout มันจะไม่แสดง แม้จะเรียก show()
+
+ถ้าคุณต้องการสลับหลายหน้าใน dialog แบบนี้บ่อย ๆ วิธีที่เหมาะกว่าคือ:
+- สร้าง groupbox ทุกหน้าไว้ก่อน
+- addWidget ทั้งหมดเข้า layout
+- ใช้ hide() และ show() สลับกัน
+
+ถ้ามีหลายหน้าและโครงเริ่มซับซ้อน ควรพิจารณาใช้ QStackedWidget แทน จะจัดการง่ายกว่า
+
+ถ้าต้องการ ผมช่วยดูต่อว่าโค้ดในไฟล์นี้ควร hide/show ตรงไหนบ้างเพื่อให้สลับหน้าจอได้ถูกครับ
+
+User: แบบนี้ได้ไหม
+
+GitHub Copilot: เกือบได้ครับ แต่โค้ดชุดนี้ยังมีจุดที่ทำให้ไม่รันตามที่ตั้งใจอยู่ 1 จุดสำคัญ คือใน `__init__` คุณเรียก `self.choose_a_booking(layout = layout)` แต่เมธอดที่ประกาศไว้ชื่อ `choose_a_booking_page()` ใน booking.py ดังนั้นจะเกิด `AttributeError` ถ้ารันถึงจุดนั้น
+
+ถ้าแก้ให้ชื่อเมธอดตรงกัน แบบนี้แนวทางโดยรวมใช้ได้:
+- สร้าง `QGroupBox` ไว้ก่อน
+- `hide()` ไว้ตอนเริ่ม
+- `addWidget()` เข้า layout แล้วค่อย `show()` ทีหลัง
+
+อีกจุดคือคุณเอา `self.a_followers` กับ `self.a_round_group` ใส่ layout ก่อน `time_label` ซึ่งไม่ได้ผิด แต่ถ้าจะให้หน้าจอดูเป็นลำดับเริ่มต้นที่ชัด อาจจัดลำดับให้ตรงกับ flow ที่ต้องการมากขึ้น
+
+สรุปสั้น ๆ: แนวคิดถูกแล้ว แต่ตอนนี้ต้องแก้ชื่อฟังก์ชันให้ตรงก่อน ไม่งั้นหน้าแรกจะไม่แสดง
+
+ถ้าต้องการ ผมช่วยตรวจต่อว่า flow ตอนกด “จองเยี่ยมวันนี้/ล่วงหน้า” ควรสลับ `show()` / `hide()` ยังไงให้ครบครับ
+
+User: สร้างไว้แล้ว hide จะเพิ่ม widget ใน method ไหนก็ได้ใช่ไหม
+
+GitHub Copilot: ใช่ครับ สร้างไว้แล้ว `hide()` จากนั้นจะไป `addWidget()` ใน method ไหนก็ได้ ตราบใดที่ widget ตัวนั้นถูกสร้างแล้วและยังมีชีวิตอยู่
+
+เงื่อนไขสำคัญมีแค่นี้:
+- widget ต้องถูกสร้างก่อน
+- ต้อง `addWidget()` เข้า layout ที่ใช้งานอยู่จริง
+- ถ้าจะสลับหน้า ให้ใช้ `hide()` / `show()` ได้จาก method อื่นตาม flow ของโปรแกรม
+
+ในไฟล์ booking.py แนวทางนี้ใช้ได้ เช่นสร้าง `self.a_round_group` กับ `self.a_followers` ไว้ใน `__init__` แล้วค่อยไปเติม widget ข้างในทีหลังใน `choose_a_round_and_followers()` ก็ได้
+
+แต่ต้องระวัง 2 จุด:
+- อย่าสร้าง `QVBoxLayout(self)` ซ้ำหลายครั้งกับ dialog เดียวกัน
+- ถ้า widget ถูกสร้างแล้วแต่ยังไม่เคย `addWidget()` เข้า layout มันจะยังไม่แสดง
+
+สรุปสั้น ๆ คือ ทำได้ครับ และเป็นวิธีปกติของ PyQt ด้วย เพียงแต่ต้องให้ layout เดิมเป็นตัวรับ widget นั้น ไม่ใช่สร้าง layout ใหม่ทับของเดิม
+
+User: ไม่ขึ้น
+
+GitHub Copilot: ไม่ขึ้นเพราะตอนนี้คุณแค่ใส่ layout ให้ `self.a_followers` แต่ยังไม่ได้สั่งให้มันแสดงครับ ใน booking.py คุณทำ `self.group_choose_booking.hide()` แล้ว `self.a_followers.setLayout(vbox)` แต่ `self.a_followers` ถูก `hide()` ไว้ตั้งแต่ตอน `__init__` และไม่มี `show()` เลย
+
+ต้องมีอย่างน้อยแบบนี้:
+
+```python
+self.group_choose_booking.hide()
+self.a_followers.show()
+```
+
+และถ้าต้องการให้เห็นข้อมูลจริง ๆ ก็ควรแน่ใจว่า `self.a_followers` ถูก `addWidget()` เข้า layout ไว้แล้ว ซึ่งคุณทำไว้ถูกแล้วใน `__init__`
+
+อีกจุดหนึ่งคือ `choose_a_round_and_followers()` ยังว่างอยู่ ถ้าตั้งใจให้หน้านี้เป็นหน้าถัดไป ควรย้าย logic ไปไว้ในเมธอดนั้นหรือเรียกเมธอดนั้นจาก `select_prisoner_booking()` แล้วค่อย `show()` `self.a_followers`
+
+สรุปสั้น ๆ:
+- `setLayout()` อย่างเดียวไม่ทำให้ widget โผล่
+- `self.a_followers` ต้อง `show()`
+- ถ้าอยากสลับหน้า ต้อง hide ตัวเก่า แล้ว show ตัวใหม่
+
+ถ้าต้องการ ผมช่วยเขียน flow ที่ถูกให้ทั้ง `เลือกวันนี้/ล่วงหน้า -> แสดง groupbox ใหม่` แบบตรงกับโค้ดชุดนี้ได้ครับ
+
+User: สอนใช้ radio หน่อย
+
+GitHub Copilot: `QRadioButton` ใช้เมื่ออยากให้ผู้ใช้เลือกได้ “แค่ 1 ตัว” จากหลายตัวครับ ถ้าเอามาใช้ร่วมกับ `QButtonGroup` และตั้ง `exclusive=True` จะบังคับให้เลือกได้ทีละอันเดียว เหมือนที่คุณเริ่มทำไว้ใน booking.py.
+
+โครงใช้พื้นฐานมี 3 ขั้น:
+1. สร้าง radio หลายตัว
+2. ใส่เข้า `QButtonGroup`
+3. อ่านตัวที่ถูกเลือกด้วย `checkedButton()`
+
+ตัวอย่างสั้น ๆ:
+
+```python
+self.round_group = QButtonGroup(self)
+self.round_group.setExclusive(True)
+
+rb1 = QRadioButton("จองวันนี้")
+rb2 = QRadioButton("จองล่วงหน้า")
+
+self.round_group.addButton(rb1)
+self.round_group.addButton(rb2)
+
+layout.addWidget(rb1)
+layout.addWidget(rb2)
+```
+
+เวลาจะเช็คว่าผู้ใช้เลือกอะไร:
+
+```python
+selected = self.round_group.checkedButton()
+if selected:
+    print(selected.text())
+```
+
+ถ้าอยากผูกค่าเพิ่มเติมกับแต่ละ radio ใช้ `setProperty()` ได้ เหมือนในไฟล์คุณที่เก็บ `round_time` ไว้:
+
+```python
+rb1.setProperty("kind", "today")
+rb2.setProperty("kind", "advance")
+```
+
+แล้วตอนอ่าน:
+
+```python
+selected = self.round_group.checkedButton()
+kind = selected.property("kind")
+```
+
+จุดสำคัญ:
+- `QRadioButton` เหมาะกับตัวเลือกแบบ “เลือกได้อย่างใดอย่างหนึ่ง”
+- `QCheckBox` เหมาะกับ “เลือกได้หลายอัน”
+- ถ้าไม่ได้ใส่ `QButtonGroup` ก็ยังเลือกได้ แต่การคุม exclusivity จะไม่ชัดเท่าใช้ group
+
+ในโค้ดคุณ เมธอด booking.py ใช้แนวทางนี้ถูกทางแล้ว แค่ตอนแสดงผลต้องแน่ใจว่ามี `layout.addWidget(btn)` ทุกตัว และตอนกดปุ่มถัดไปให้ใช้ `checkedButton()` ตรวจว่าเลือก radio ไหนอยู่
+
+ถ้าต้องการ ผมช่วยอธิบายต่อว่า `clicked`, `toggled`, และ `checkedButton()` ต่างกันยังไงใน PyQt6 ได้ครับ

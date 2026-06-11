@@ -301,7 +301,7 @@ class POSTGRESQL():
     @log_db_exceptions
     def get_prisoners_from_relative_id(self, relative_id):
         '''
-        ดึงข้อมูลผู้ต้องขัง จาก id ญาติ'''
+        ดึงข้อมูลผู้ต้องขัง จาก id ญาติ result = SELECT p.prisoner_id, p.sex, p.f_name, p.l_name, p.level, p.dan, p.status, p.disciplinary, r.relation'''
         with self.conn.cursor() as cur:
             cur.execute(
                 '''
@@ -361,7 +361,8 @@ class POSTGRESQL():
     @log_db_exceptions
     def get_relative_data(self, relative_id):
         '''
-        ดึงข้อมูลญาติ จาก id ของญาติเอง เอาแค่ id,title,f_name,l_name,address,tel,is_active,user_insert,timestamp,time_update
+        ดึงข้อมูลญาติ จาก id ของญาติเอง เอาแค่ \n
+        id,title,f_name,l_name,address,tel,is_active,user_insert,timestamp,time_update\n
         FROM relatives
         '''
         with self.conn.cursor() as cur:
@@ -395,7 +396,7 @@ class POSTGRESQL():
     @log_db_exceptions
     def upsert_relative_fingerprint(self, relative_id, finger_name, fingerprint_bytes, is_active = True):
         '''
-        '''
+        บันทึกลายนิ้วมือ ถ้ามีอยู่ให้อัพเดท'''
         with self.conn.cursor() as cur:
             cur.execute(
                 '''
@@ -428,6 +429,77 @@ class POSTGRESQL():
                 (relative_id,)
             )
             return cur.fetchall()
+
+    @log_db_exceptions
+    def get_data_check_disciplinary(self, prisoner_id):
+        '''
+        ดึงข้อมูลผู้ต้องขังผิดวินัย เพื่อตรวจสอบ'''
+        with self.conn.cursor() as cur:
+            cur.execute('SELECT disciplinary FROM prisoners WHERE prisoner_id = %s', (prisoner_id,))
+            return cur.fetchone()        
+
+    @log_db_exceptions
+    def get_join_prisoners_and_relatives_not_follower(self, prisoner_id, relative_id):
+        '''
+        SELECT
+            relatives.relative_id,
+            relatives.title,
+            relatives.f_name,
+            relatives.l_name
+        FROM relations
+        JOIN relatives ON relations.relative_id = relatives.relative_id
+        WHERE relations.prisoner_id = ? AND NOT relations.relative_id = ?'''
+        with self.conn.cursor() as cur:
+            cur.execute(
+                '''
+                    SELECT
+                        relatives.relative_id,
+                        relatives.title,
+                        relatives.f_name,
+                        relatives.l_name
+                    FROM relations
+                    JOIN relatives ON relations.relative_id = relatives.relative_id
+                    WHERE relations.prisoner_id = %s AND NOT relations.relative_id = %s
+                ''',(prisoner_id, relative_id)
+            )
+            return cur.fetchall()
+
+    @log_db_exceptions
+    def get_count_visit(self, prisoner_id, today, today_month):
+        '''
+        ส่งค่ากลับเป็น การเยี่ยม วันนี้และเดือนนี้
+        cur.execute('SELECT COUNT(*) FROM visits WHERE prisoner_id = %s AND date_visit = %s',(prisoner_id,today))
+        count_today = cur.fetchone()[0]
+        cur.execute('SELECT COUNT(*) FROM visits WHERE prisoner_id = %s AND strftime("%Y-%m", date_visit) = %s',(prisoner_id,month))
+        count_month = cur.fetchone()[0]
+        '''
+        with self.conn.cursor() as cur:
+            cur.execute('SELECT COUNT(*) FROM visits WHERE prisoner_id = %s AND date_visit = %s',(prisoner_id,today))
+            count_today = cur.fetchone()[0]
+            cur.execute('SELECT COUNT(*) FROM visits WHERE prisoner_id = %s AND strftime("%Y-%m", date_visit) = %s',(prisoner_id,today_month))
+            count_month = cur.fetchone()[0]
+            return count_today,count_month
+
+    @log_db_exceptions
+    def get_channel(self, date, round_time):
+        '''
+        ดึงค่าช่องเยี่ยม \n
+        cur.execute('SELECT channel FROM visits WHERE date_visit = ? AND time_visit = ?',(date,round_time))
+        data = [row[0] for row in cur.fetchall() if row[0] is not None]
+        return data'''
+        with self.conn.cursor() as cur:
+            cur.execute('SELECT channel FROM visits WHERE date_visit = ? AND time_visit = ?',(date,round_time))
+            data = [row[0] for row in cur.fetchall() if row[0] is not None]
+            return data
+
+    @log_db_exceptions
+    def add_booking_to_visits(self, query, data):
+        '''
+        เพิ่มข้อมูลการจองเยี่ยมลงในตาราง visits\n
+        รับค่า query เป็น text , data เป็น list'''
+        with self.conn.cursor() as cur:
+            cur.execute(query,data)
+        return True
 
     def log_error(self, function_name, error_message, extra_info=None):
         try:

@@ -1,13 +1,14 @@
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QLabel, QFrame, QGroupBox, QPushButton,
-    QRadioButton, QButtonGroup, QCheckBox, QMessageBox
+    QRadioButton, QButtonGroup, QCheckBox, QMessageBox, QHBoxLayout
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt,QTimer
 from datetime import datetime
 
 from db.db import POSTGRESQL
 from ui.alert_box import AlertBox
 
+import time as t
 
 class Booking(QDialog):
     IDX_DATE = 0
@@ -15,36 +16,37 @@ class Booking(QDialog):
     IDX_FOLLOWERS = 2
     IDX_CHANNEL = 3
 
-    def __init__(self, prisoner_data, relative_data, reserve_now=True, today=None, today_month=None, parent=None, on_success=None):
+    def __init__(self,relative_data, parent = None):
         super().__init__(parent)
         self.setWindowTitle("จองเยี่ยม")
         self.setModal(True)
         self.resize(520, 760)
 
         self.db = POSTGRESQL()
-        self.prisoner_data = prisoner_data
+        layout = QVBoxLayout(self)
+        layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignCenter)
+        self.time_label = QLabel()
+        self.update_time_label()
+
+        self.time_timer = QTimer(self)
+        self.time_timer.timeout.connect(self.update_time_label)
+        self.time_timer.start(1000)
+
         self.relative_data = relative_data
-        self.reserve_now = reserve_now
-        self.on_success = on_success
-
-        self.id = self.prisoner_data[0]
-        self.name = self.prisoner_data[1]
-        self.surname = self.prisoner_data[2]
-        self.level = self.prisoner_data[3]
-        self.dan = self.prisoner_data[4]
-        self.type = self.prisoner_data[7]
-
-        self.relative_id = self.relative_data[0]
+        self.relative_id = relative_data[0]
+        
         self.relative_fullname = f"{self.relative_data[1]}{self.relative_data[2]} {self.relative_data[3]}"
 
-        self.today = today or datetime.now().strftime("%Y-%m-%d")
-        self.today_month = today_month or datetime.now().strftime("%Y-%m")
+        self.related_to_prisoners = self.db.get_prisoners_from_relative_id(self.relative_id)
+        print(self.related_to_prisoners)
+        # self.today = today or datetime.now().strftime("%Y-%m-%d")
+        # self.today_month = today_month or datetime.now().strftime("%Y-%m")
 
         self.data_reserve = ["", "", [], None]
         self.follower_vars = []
         self.count_reserve = 0
         self.current_channel = None
-
+        self.group_choose_booking = None
         self.morning_rounds = [
             ("รอบที่ 1 เวลา 09.30 - 09.45", "09:30:00", "09:15:00"),
             ("รอบที่ 2 เวลา 10.00 - 10.15", "10:00:00", "09:45:00"),
@@ -57,14 +59,68 @@ class Booking(QDialog):
             ("รอบที่ 7 เวลา 14.15 - 14.30", "14:15:00", "13:15:00"),
         ]
 
-        self._build_ui()
-        self.start_flow()
+        self.a_round_group = QGroupBox('เลือกรอบเยี่ยม')
+        self.a_followers_group = QGroupBox('เลือกผู้ติดตาม')
+        self.a_followers_group = QGroupBox('เลือกผู้ติดตาม')
+        self.a_prisoners_group = QGroupBox('เลือกผู้ต้องขัง')
+        self.a_round_group.hide()
+        self.a_followers_group.hide()
+        layout.addWidget(self.time_label, alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.a_followers_group)
+        layout.addWidget(self.a_round_group)
+        self.choose_a_booking_page(layout = layout)
+        
+        # self._build_ui()
+        # self.start_flow()
+
+    def choose_a_booking_page(self ,layout):
+
+        self.group_choose_booking = QGroupBox('เลือกการจองเยี่ยม')
+        groub_layout = QVBoxLayout(self.group_choose_booking)
+        btn_book_today = QPushButton('จองเยี่ยมวันนี้')
+        btn_book_advance = QPushButton('จองเยี่ยมล่วงหน้า')
+        btn_close_window = QPushButton('ยกเลิก')
+        groub_layout.addWidget(btn_book_today)
+        groub_layout.addWidget(btn_book_advance)
+        groub_layout.addWidget(btn_close_window)
+
+        layout.addWidget(self.group_choose_booking)
+
+        btn_book_today.clicked.connect(lambda: self.select_prisoner_booking(True))
+        btn_book_advance.clicked.connect(lambda: self.select_prisoner_booking(False))
+        btn_close_window.clicked.connect(self.close)
+
+    def choose_a_round_and_followers(self):
+        pass
+        
+
+
+    def select_prisoner_booking(self, state_booking_today=bool):
+        vbox = QVBoxLayout()
+        self.group_choose_booking.hide()
+        if state_booking_today:
+            label = QLabel('จองเยี่ยมวันนี้')
+        else:
+            label = QLabel('จองเยี่ยมล่วงหน้า')
+        vbox.addWidget(label)
+        self.a_followers_group.setLayout(vbox)
+        self.a_followers_group.show()
+
+
+
+
+
+
+
+
+
+
 
     def _build_ui(self):
         layout = QVBoxLayout(self)
+        layout.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
 
         title = QLabel("จองเยี่ยม")
-        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)
 
         line = QFrame()
@@ -116,7 +172,7 @@ class Booking(QDialog):
         follower_layout = QVBoxLayout(self.follower_box)
         self.follower_vars = []
 
-        followers = self.db.get_join_prisoners_and_relatives_not_follower(self.id, self.relative_id)
+        followers = self.db.get_join_prisoners_and_relatives_not_follower(self.prisoner_id, self.relative_id)
         if followers:
             for row in followers:
                 cb = QCheckBox(f"{row[1]}{row[2]} {row[3]}")
@@ -167,14 +223,14 @@ class Booking(QDialog):
         self.select_round()
 
     def check_disciplinary(self):
-        data = self.db.get_data_one(self.id)
-        if data and data[9] == "ผิดวินัย":
+        data_dis = self.db.get_data_check_disciplinary(self.prisoner_id)
+        if data_dis and data_dis == "ผิดวินัย":
             AlertBox.error(self, "จองเยี่ยม", "ผู้ต้องขังรายนี้ผิดวินัย ไม่สามารถจองเยี่ยมได้")
             return False
         return True
 
     def check_visit(self):
-        check_visit = self.db.get_count_visit(self.id, self.today, self.today_month)
+        check_visit = self.db.get_count_visit(self.prisoner_id, self.today, self.today_month)
         self.count_reserve = check_visit[1] if check_visit else 0
         return True
 
@@ -191,7 +247,7 @@ class Booking(QDialog):
         self.page_confirm.hide()
         self.page_round.show()
         self.round_hint.setText(
-            f"ผู้ต้องขัง: {self.name} {self.surname}\n"
+            f"ผู้ต้องขัง: {self.prisoner_name} {self.prisoner_surname}\n"
             f"ญาติผู้จอง: {self.relative_fullname}\n"
             f"วันที่เยี่ยม: {self.get_thai_date(self.today)}"
         )
@@ -229,7 +285,7 @@ class Booking(QDialog):
         self.page_confirm.show()
 
         self.confirm_hint.setText(
-            f"ชื่อผู้ต้องขัง: {self.name} {self.surname}\n"
+            f"ชื่อผู้ต้องขัง: {self.prisoner_name} {self.prisoner_surname}\n"
             f"วันที่: {self.get_thai_date(self.today)}\n"
             f"เวลา: {self.data_reserve[self.IDX_ROUND]}\n"
             f"ช่องเยี่ยม: {self.current_channel}\n"
@@ -249,7 +305,7 @@ class Booking(QDialog):
             [
                 self.today,
                 self.data_reserve[self.IDX_ROUND],
-                self.id,
+                self.prisoner_id,
                 self.relative_id,
                 *self.data_reserve[self.IDX_FOLLOWERS]
             ],
@@ -264,19 +320,20 @@ class Booking(QDialog):
             AlertBox.error(self, "จองเยี่ยม", "บันทึกไม่สำเร็จ")
 
     def insert_reserve_visit_to_db(self, prepare_data, channel):
-        if channel is None:
-            return False
-        try:
-            return self.db.insert_visit_by_national_id(
-                visit_date=prepare_data[0],
-                time_visit=prepare_data[1],
-                prisoner_id=prepare_data[2],
-                relative_id=prepare_data[3],
-                follower_ids=prepare_data[4:],
-                channel=channel
-            )
-        except Exception:
-            return False
+        print('self.insert_reserve_visit_to_db')
+        # if channel is None:
+        #     return False
+        # try:
+        #     return self.db.insert_visit_by_national_id(
+        #         visit_date=prepare_data[0],
+        #         time_visit=prepare_data[1],
+        #         prisoner_id=prepare_data[2],
+        #         relative_id=prepare_data[3],
+        #         follower_ids=prepare_data[4:],
+        #         channel=channel
+        #     )
+        # except Exception:
+        #     return False
 
     def get_thai_date(self, date_str):
         thai_days = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"]
@@ -286,3 +343,21 @@ class Booking(QDialog):
         ]
         dt = datetime.strptime(date_str, "%Y-%m-%d")
         return f"วัน{thai_days[dt.weekday()]} ที่ {dt.day} {thai_months[dt.month - 1]} {dt.year + 543}"
+    
+    def update_time_label(self):
+        '''
+        แสดงเวลาแบบ realtime'''
+
+        days = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"]
+        months = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน",
+                "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม",
+                "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"]
+        
+        current_time = t.localtime()
+        day = days[current_time.tm_wday]
+        month = months[current_time.tm_mon - 1]
+
+        self.time_label.setText(
+            f"วัน {day} ที่ {current_time.tm_mday} {month} "
+            f"{current_time.tm_year + 543} เวลา {t.strftime('%H:%M:%S')}"
+        )
