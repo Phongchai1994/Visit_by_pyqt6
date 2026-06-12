@@ -33,6 +33,7 @@ class POSTGRESQL():
         self.conn.autocommit = True
         # self.create_tables_if_not_exist()
 
+
     @log_db_exceptions
     def create_tables_if_not_exist(self):
         commands = [
@@ -202,43 +203,9 @@ class POSTGRESQL():
                 cur.execute(command)
         # print("Tables created or already exist.")
 
-    @log_db_exceptions
-    def get_all_prisoners_list(self):
-        '''
-        ดึงข้อมูลผู้ต้องขังใน DB
-        '''
-        with self.conn.cursor() as cur:
-            cur.execute('SELECT * FROM prisoners')
-            rows = cur.fetchall()
-            return rows
-
-    @log_db_exceptions
-    def get_all_relatives_list(self):
-        '''
-        ดึงข้อมูลญาติ ใน db'''
-        with self.conn.cursor() as cur: 
-            cur.execute(
-                """
-                SELECT
-                    r.relative_id,
-                    r.title,
-                    r.f_name,
-                    r.l_name,
-                    r.address,
-                    r.tel,
-                    EXISTS(
-                        SELECT 1
-                        FROM relative_fingerprints rf
-                        WHERE rf.relative_id = r.relative_id
-                        AND rf.is_active = TRUE
-                    ) AS has_fingerprint,
-                    r.is_active,
-                    r.timestamp
-                FROM relatives r
-                """
-            )
-            rows = cur.fetchall()
-            return rows
+# -----------------------------------------------
+#   หมวด insert & update
+# -----------------------------------------------
 
     @log_db_exceptions
     def insert_and_update_prisoner(self, prisoner_id, sex, f_name, l_name, lawsuit, level, dan, type_, status, disciplinary = None):
@@ -265,54 +232,6 @@ class POSTGRESQL():
                 """,(prisoner_id, sex, f_name, l_name, lawsuit, level, dan, type_, status, disciplinary)
             )
         return True
-
-    @log_db_exceptions
-    def check_db_login(self, username, password):
-        '''
-        ดึงข้อมูล username password
-        '''
-        with self.conn.cursor() as cur:
-            cur.execute("SELECT password, user_type, fullname FROM users WHERE username=%s", (username,))
-            row = cur.fetchone()
-            if row:
-                db_password = row[0].tobytes()
-                input_hash = hashlib.sha256(password.encode()).digest()
-                if db_password == input_hash:
-                    return True, row[1], row[2]
-            return False, None, None
-
-    @log_db_exceptions
-    def get_relatives(self, prisoner_id):
-        '''
-        ดึงข้อมูลญาติ จาก id ผู้ต้องขัง
-        '''
-        with self.conn.cursor() as cur:
-            cur.execute(
-                '''
-                SELECT rel.relative_id, rel.title, rel.f_name, rel.l_name, rel.tel, r.relation
-                FROM relatives rel
-                JOIN relations r ON rel.relative_id = r.relative_id
-                WHERE r.prisoner_id = %s AND rel.is_active = TRUE AND r.is_active = TRUE
-                ''',
-                (prisoner_id,)
-            )
-            return cur.fetchall()
-
-    @log_db_exceptions
-    def get_prisoners_from_relative_id(self, relative_id):
-        '''
-        ดึงข้อมูลผู้ต้องขัง จาก id ญาติ result = SELECT p.prisoner_id, p.sex, p.f_name, p.l_name, p.level, p.dan, p.status, p.disciplinary, r.relation'''
-        with self.conn.cursor() as cur:
-            cur.execute(
-                '''
-                SELECT p.prisoner_id, p.sex, p.f_name, p.l_name, p.level, p.dan, p.status, p.disciplinary, r.relation
-                FROM prisoners p
-                JOIN relations r ON p.prisoner_id = r.prisoner_id
-                WHERE r.relative_id = %s
-                ''',(relative_id,)
-            )
-            row = cur.fetchall()
-            return row
 
     @log_db_exceptions
     def insert_or_update_relative_and_relation(self,relative_id, prisoner_id, title, f_name, l_name, address, tel, relation, user_insert = None):
@@ -359,41 +278,6 @@ class POSTGRESQL():
         return True
 
     @log_db_exceptions
-    def get_relative_data(self, relative_id):
-        '''
-        ดึงข้อมูลญาติ จาก id ของญาติเอง เอาแค่ \n
-        id,title,f_name,l_name,address,tel,is_active,user_insert,timestamp,time_update\n
-        FROM relatives
-        '''
-        with self.conn.cursor() as cur:
-            cur.execute(
-                '''
-                SELECT relative_id, title, f_name, l_name, address, tel, is_active, user_insert, timestamp, time_update
-                FROM relatives
-                WHERE relative_id = %s
-                ''',
-                (relative_id,)
-            )
-            return cur.fetchone()
-
-    @log_db_exceptions
-    def updete_relation(self, prisoner_id, relative_id, is_active:bool):
-        '''
-        แก้ไขข้อมูลความสัมพันธ์ ต้องการ relative_id, prisoner_id, is_active'''
-        with self.conn.cursor() as cur:
-            print(prisoner_id, relative_id, is_active)
-            cur.execute(
-                '''
-                UPDATE relations
-                SET 
-                    is_active = %s, 
-                    "timestamp" = CURRENT_TIMESTAMP
-                WHERE prisoner_id = %s AND relative_id = %s
-                ''',(is_active, prisoner_id, relative_id)
-            )
-            return True
-
-    @log_db_exceptions
     def upsert_relative_fingerprint(self, relative_id, finger_name, fingerprint_bytes, is_active = True):
         '''
         บันทึกลายนิ้วมือ ถ้ามีอยู่ให้อัพเดท'''
@@ -413,6 +297,127 @@ class POSTGRESQL():
                 (relative_id, finger_name, Binary(fingerprint_bytes), is_active)
             )
             return True
+
+    @log_db_exceptions
+    def updete_relation(self, prisoner_id, relative_id, is_active:bool):
+        '''
+        แก้ไขข้อมูลความสัมพันธ์ ต้องการ relative_id, prisoner_id, is_active'''
+        with self.conn.cursor() as cur:
+            print(prisoner_id, relative_id, is_active)
+            cur.execute(
+                '''
+                UPDATE relations
+                SET 
+                    is_active = %s, 
+                    "timestamp" = CURRENT_TIMESTAMP
+                WHERE prisoner_id = %s AND relative_id = %s
+                ''',(is_active, prisoner_id, relative_id)
+            )
+            return True
+
+    @log_db_exceptions
+    def insert_booking_to_visits(self, query, data):
+        '''
+        เพิ่มข้อมูลการจองเยี่ยมลงในตาราง visits\n
+        รับค่า query เป็น text , data เป็น list'''
+        with self.conn.cursor() as cur:
+            cur.execute(query,data)
+        return True
+
+
+# -----------------------------------------------
+#   หมวด get ดึงข้อมูล
+# -----------------------------------------------
+
+
+    @log_db_exceptions
+    def get_all_prisoners_list(self):
+        '''
+        ดึงข้อมูลผู้ต้องขังใน DB
+        '''
+        with self.conn.cursor() as cur:
+            cur.execute('SELECT * FROM prisoners')
+            rows = cur.fetchall()
+            return rows
+
+    @log_db_exceptions
+    def get_all_relatives_list(self):
+        '''
+        ดึงข้อมูลญาติ ใน db'''
+        with self.conn.cursor() as cur: 
+            cur.execute(
+                """
+                SELECT
+                    r.relative_id,
+                    r.title,
+                    r.f_name,
+                    r.l_name,
+                    r.address,
+                    r.tel,
+                    EXISTS(
+                        SELECT 1
+                        FROM relative_fingerprints rf
+                        WHERE rf.relative_id = r.relative_id
+                        AND rf.is_active = TRUE
+                    ) AS has_fingerprint,
+                    r.is_active,
+                    r.timestamp
+                FROM relatives r
+                """
+            )
+            rows = cur.fetchall()
+            return rows
+
+    @log_db_exceptions
+    def get_relatives(self, prisoner_id):
+        '''
+        ดึงข้อมูลญาติ จาก id ผู้ต้องขัง
+        '''
+        with self.conn.cursor() as cur:
+            cur.execute(
+                '''
+                SELECT rel.relative_id, rel.title, rel.f_name, rel.l_name, rel.tel, r.relation
+                FROM relatives rel
+                JOIN relations r ON rel.relative_id = r.relative_id
+                WHERE r.prisoner_id = %s AND rel.is_active = TRUE AND r.is_active = TRUE
+                ''',
+                (prisoner_id,)
+            )
+            return cur.fetchall()
+
+    @log_db_exceptions
+    def get_prisoners_from_relative_id(self, relative_id):
+        '''
+        ดึงข้อมูลผู้ต้องขัง จาก id ญาติ result = SELECT p.prisoner_id, p.sex, p.f_name, p.l_name, p.level, p.dan, p.status, p.disciplinary, r.relation'''
+        with self.conn.cursor() as cur:
+            cur.execute(
+                '''
+                SELECT p.prisoner_id, p.sex, p.f_name, p.l_name, p.level, p.dan, p.status, p.disciplinary, r.relation
+                FROM prisoners p
+                JOIN relations r ON p.prisoner_id = r.prisoner_id
+                WHERE r.relative_id = %s
+                ''',(relative_id,)
+            )
+            row = cur.fetchall()
+            return row
+
+    @log_db_exceptions
+    def get_relative_data(self, relative_id):
+        '''
+        ดึงข้อมูลญาติ จาก id ของญาติเอง เอาแค่ \n
+        id,title,f_name,l_name,address,tel,is_active,user_insert,timestamp,time_update\n
+        FROM relatives
+        '''
+        with self.conn.cursor() as cur:
+            cur.execute(
+                '''
+                SELECT relative_id, title, f_name, l_name, address, tel, is_active, user_insert, timestamp, time_update
+                FROM relatives
+                WHERE relative_id = %s
+                ''',
+                (relative_id,)
+            )
+            return cur.fetchone()
 
     @log_db_exceptions
     def get_relative_fingerprint_return_fp_name(self,relative_id):
@@ -493,14 +498,44 @@ class POSTGRESQL():
             return data
 
     @log_db_exceptions
-    def add_booking_to_visits(self, query, data):
+    def get_relatives_follower_from_p_id(self,prisoner_id):
         '''
-        เพิ่มข้อมูลการจองเยี่ยมลงในตาราง visits\n
-        รับค่า query เป็น text , data เป็น list'''
+        ดึงข้อมูลผู้ติดตาม\n
+        SELECT rel.relative_id, rel.title, rel.f_name, rel.l_name, r.relation\n 
+        FROM relations r\n
+        JOIN relatives rel ON r.relative_id = rel.relative_id\n
+        WHERE r.prisoner_id = %s'''
         with self.conn.cursor() as cur:
-            cur.execute(query,data)
-        return True
+            cur.execute(
+                '''
+                SELECT rel.relative_id, rel.title, rel.f_name, rel.l_name, r.relation 
+                FROM relations r
+                JOIN relatives rel ON r.relative_id = rel.relative_id
+                WHERE r.prisoner_id = %s
+                ''',(prisoner_id,)
+            )
+            return cur.fetchall()
+# -----------------------------------------------
+#   Login
+# -----------------------------------------------
+    @log_db_exceptions
+    def check_db_login(self, username, password):
+        '''
+        ดึงข้อมูล username password
+        '''
+        with self.conn.cursor() as cur:
+            cur.execute("SELECT password, user_type, fullname FROM users WHERE username=%s", (username,))
+            row = cur.fetchone()
+            if row:
+                db_password = row[0].tobytes()
+                input_hash = hashlib.sha256(password.encode()).digest()
+                if db_password == input_hash:
+                    return True, row[1], row[2]
+            return False, None, None
 
+# -----------------------------------------------
+#   บันทึก log
+# -----------------------------------------------
     def log_error(self, function_name, error_message, extra_info=None):
         try:
             with self.conn.cursor() as cur:

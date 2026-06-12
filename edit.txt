@@ -267,3 +267,9 @@ kind = selected.property("kind")
 ในโค้ดคุณ เมธอด booking.py ใช้แนวทางนี้ถูกทางแล้ว แค่ตอนแสดงผลต้องแน่ใจว่ามี `layout.addWidget(btn)` ทุกตัว และตอนกดปุ่มถัดไปให้ใช้ `checkedButton()` ตรวจว่าเลือก radio ไหนอยู่
 
 ถ้าต้องการ ผมช่วยอธิบายต่อว่า `clicked`, `toggled`, และ `checkedButton()` ต่างกันยังไงใน PyQt6 ได้ครับ
+
+
+
+
+
+####### ต้องการเพิ่มเมนูจัดการรอบเยี่ยมด้วย etc/config/json
