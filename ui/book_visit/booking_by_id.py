@@ -85,6 +85,7 @@ class Book_By_National_ID(QWidget):
 
 
     def verify_input_id(self, trigger):
+        self.btn_get_id.setDisabled(True)
         self.create_ui_relative_data()
         relative_id = None
         #  ตรวจสอบการกด button or enter
@@ -137,7 +138,8 @@ class Book_By_National_ID(QWidget):
             prisoner_data = (
                 f'ชื่อ {value[2]} {value[3]} เพศ {value[1]}<br>'
                 f'ชั้น {value[4]} แดน {value[5]}<br>'
-                f'สถานะ {status_html} วินัย {disciplinary_html}'
+                f'สถานะ {status_html} วินัย {disciplinary_html}<br>'
+                f'ประเภท {value[8]}'
             )
 
             lbl_key = QLabel(f"คนที่ {i} :")

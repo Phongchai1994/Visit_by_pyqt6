@@ -1,0 +1,802 @@
+User: QWidget::setLayout: Attempting to set QLayout "" on QGroupBox "", which already has a layout
+คืออะไร
+
+GitHub Copilot: I’m checking the relevant layout setup in your booking dialog to see where the warning comes from.
+
+Searched for regex `setLayout\(|QGroupBox\(|clear_layout\(` (`**/*.py`), 50 results
+
+## สาเหตุของคำเตือน
+
+ข้อความนี้หมายความว่า
+
+- `QGroupBox` ตัวหนึ่งถูกเรียกใช้ `setLayout(...)`
+- แต่ก่อนหน้านั้น widget ตัวนี้มี layout อยู่แล้ว
+- Qt ไม่ชอบให้เรียก `setLayout()` ซ้ำบน widget เดียวกัน
+
+## ในไฟล์ booking.py
+
+จุดที่น่าจะเกิดขึ้นคือในเมธอด `select_prisoner_booking()`:
+
+```python
+vbox_label = QVBoxLayout()
+vbox_label.addWidget(mode_label, stretch = 0, alignment = Qt.AlignmentFlag.AlignCenter)
+self.a_mode_bookint_group.setLayout(vbox_label)
+```
+
+`select_prisoner_booking()` ถูกเรียกซ้ำได้หลายครั้ง (เมื่อกดกลับ/เลือกใหม่) ดังนั้น `self.a_mode_bookint_group.setLayout(...)` ก็จะถูกเรียกซ้ำด้วย
+
+## วิธีแก้ไข
+
+ใช้วิธีใดวิธีหนึ่งต่อไปนี้
+
+1. สร้าง layout ให้ `a_mode_bookint_group` ที่ `__init__` เพียงครั้งเดียว
+   - `self.mode_layout = QVBoxLayout(self.a_mode_bookint_group)`
+   - แล้วใช้ `self.mode_layout.addWidget(...)` แทน `setLayout(...)`
+
+2. ถ้าต้องการใช้ `setLayout()` ทุกครั้ง ให้ตรวจก่อนว่าไม่มี layout อยู่แล้ว
+   ```python
+   if self.a_mode_bookint_group.layout() is None:
+       self.a_mode_bookint_group.setLayout(vbox_label)
+   else:
+       layout = self.a_mode_bookint_group.layout()
+       # ล้าง widget ใน layout เดิมแล้วเพิ่ม widget ใหม่
+   ```
+
+## สรุป
+
+คำเตือนนี้ไม่ใช่ error ร้ายแรง แต่เป็นสัญญาณว่าคุณกำลังตั้ง layout ซ้ำใน `QGroupBox` เดิม ให้สร้าง layout ครั้งเดียวแล้ว reuse หรือเคลียร์ layout ก่อนเปลี่ยนใหม่ครับ
+
+User: data[3] จะเอาแค่ 3 ตัว
+
+GitHub Copilot: กำลังดูโครงสร้างข้อมูล `data` ใน `get_prisoners_from_relative_id` เพื่อช่วยตอบว่าจะเอา `data[3]` แค่ 3 ตัวอย่างไรให้ถูกต้องครับ
+
+Searched for regex `def get_prisoners_from_relative_id|get_prisoners_from_relative_id` (`**/db/**/*.py`), 1 result
+
+Read [](file:///c%3A/Users/ADMINS/Visit_by_pyqt6/db/db.py#360-360), lines 360 to 430
+
+## คำตอบ
+
+`data[3]` ใน booking.py มาจากผลลัพธ์ของ `get_prisoners_from_relative_id()` ใน db.py
+
+ใน db.py row นี้คือ:
+
+- `data[0]` = `p.prisoner_id`
+- `data[1]` = `p.sex`
+- `data[2]` = `p.f_name`
+- `data[3]` = `p.l_name`
+- `data[4]` = `p.level`
+- `data[5]` = `p.dan`
+- `data[6]` = `p.status`
+- `data[7]` = `p.disciplinary`
+- `data[8]` = `r.relation`
+
+ถ้าต้องการเอาแค่ 3 ตัวอักษรจาก `data[3]` ให้ใช้:
+
+```python
+str(data[3])[:3]
+```
+
+เช่น:
+
+```python
+label = f'{str(data[2])} {str(data[3])[:3]} {str(data[4])} {str(data[5])} {dis} {str(data[8])}'
+```
+
+> ถ้าหมายถึงเอาแค่ 3 แถว ให้ทำกับผลลัพธ์ของ `self.related_to_prisoners` แทน เช่น `self.related_to_prisoners[:3]`
+
+User: #sym:stretch ของ .addWidget คือ 
+
+GitHub Copilot: ## `stretch` ของ `addWidget()`
+
+- เป็น `int`
+- ใช้เป็นค่า stretch factor ใน layout
+- ถ้าใส่ `stretch=0` แปลว่าไม่ขยายพิเศษ
+- ถ้ามี widget หลายตัวใน `QVBoxLayout` / `QHBoxLayout` ค่าที่ให้จะเป็นอัตราส่วนการแบ่งพื้นที่ว่าง
+
+ตัวอย่าง:
+
+```python
+layout.addWidget(widget1, stretch=1)
+layout.addWidget(widget2, stretch=2)
+```
+
+จะให้ `widget2` ได้พื้นที่ว่างมากกว่า `widget1` เป็น 2 ต่อ 1 เมื่อ layout มีพื้นที่เหลือ
+
+User: self.main_layout.addWidget(self.a_button_group, stretch=0, alignment=Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignCenter)
+ให้ชิดด้านล่าง
+
+GitHub Copilot: ## ทำให้ `self.a_button_group` ชิดด้านล่าง
+
+`stretch=0` ที่ใส่ใน `addWidget()` ไม่ได้ผลัก widget ลงล่าง มันเป็นแค่ stretch factor ของ widget เอง
+
+### แก้ไขง่าย
+
+ใน `__init__()` ก่อนเพิ่ม `self.a_button_group` ให้เพิ่ม spacer ยืดออกด้านบน:
+
+```python
+self.main_layout.addStretch(1)
+self.main_layout.addWidget(
+    self.a_button_group,
+    alignment=Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignCenter
+)
+```
+
+### เหตุผล
+
+- `QVBoxLayout` วาง widget จากบนลงล่าง
+- ถ้าไม่มี stretch spacer ระหว่าง widget ด้านบนกับ `a_button_group`
+  - widget จะอยู่ด้านบน
+- `addStretch(1)` จะขยายพื้นที่ว่างขึ้นมา
+  - ทำให้ `self.a_button_group` ถูกผลักลงล่าง
+
+> สรุป: `stretch=0` ไม่พอ ต้องใช้ `addStretch(1)` ก่อน widget ที่ต้องการให้ติดก้นหน้าต่าง
+
+User: ทำไมขนาดไม่เท่ากับ groupbox อื่น ๆ
+
+GitHub Copilot: ### ทำไม `a_button_group` ถึงไม่เท่ากับ `QGroupBox` อื่น
+
+ใน booking.py คุณใช้:
+
+```python
+self.main_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignCenter)
+...
+self.main_layout.addWidget(self.a_button_group, stretch=0, alignment=Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignCenter)
+```
+
+นั่นทำให้
+
+- `main_layout` วาง widget ทั้งหมดแบบจัดกึ่งกลางแนวนอน
+- `a_button_group` ถูกจัดกึ่งกลาง และไม่ถูกบังคับให้ขยายเต็มความกว้าง
+- `stretch=0` ใน `addWidget()` จะควบคุมเฉพาะการขยายแนวตั้ง ไม่ได้บังคับความกว้าง
+
+### เพราะอะไรถึงเล็กกว่า
+
+`a_button_group` มีปุ่มไม่กี่ปุ่มใน layout ของตัวเอง ดังนั้น `QGroupBox` จะย่อขนาดตามขนาดขั้นต่ำของปุ่มเหล่านั้น
+
+ส่วน groupbox อื่น ๆ อาจมี layout หรือ widget ที่ขยายเต็มความกว้างมากกว่า จึงดูใหญ่กว่า
+
+### ถ้าต้องการให้เท่ากัน
+
+ให้บังคับให้ `a_button_group` ขยายแนวนอน เช่น:
+
+```python
+from PyQt6.QtWidgets import QSizePolicy
+
+self.a_button_group.setSizePolicy(
+    QSizePolicy.Policy.Expanding,
+    QSizePolicy.Policy.Fixed
+)
+```
+
+หรือถ้าจะให้ทั้ง layout ใช้ความกว้างเต็ม ก็ไม่ต้องจัด `AlignCenter` แนวนอน:
+
+```python
+self.main_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+self.main_layout.addWidget(self.a_button_group, alignment=Qt.AlignmentFlag.AlignBottom)
+```
+
+> สรุป: ปัญหาอยู่ที่การจัดแนวนอน (`AlignCenter`) และขนาดขั้นต่ำของ `a_button_group` — ไม่ใช่ `stretch=0` นั่นเอง
+
+User: ถ้า btn_book_today ถูกกด ให้ self.booking_date_visit = วันนี้ รูปแบบ 2026-06-12
+แต่ถ้า btn_book_advance ถูกกด ให้บวกเพิ่ม 1 วัน และให้ข้ามวันหยุดใน db.holidays
+
+GitHub Copilot: กำลังตรวจสอบฟังก์ชันวันที่และการใช้งานวันหยุดในโค้ด เพื่อให้แนะนำแก้ไขอย่างแม่นยำครับ
+
+Searched for regex `holidays|holiday|get_holidays|date_visit|booking_date_visit|today|add_days|timedelta` (`**/*.py`), 40 results
+
+Read [](file:///c%3A/Users/ADMINS/Visit_by_pyqt6/utils/date_convers.py)
+
+## วิธีทำให้ `btn_book_today` / `btn_book_advance` ตั้งค่า `self.booking_date_visit`
+
+### 1. ตั้งค่าเมื่อกดปุ่ม
+
+ใน `__init__()` เปลี่ยน handler จากเดิม:
+
+```python
+btn_book_today.clicked.connect(lambda: self.select_prisoner_booking(True))
+btn_book_advance.clicked.connect(lambda: self.select_prisoner_booking(False))
+```
+
+เป็น:
+
+```python
+btn_book_today.clicked.connect(lambda: self.prepare_booking_date(True))
+btn_book_advance.clicked.connect(lambda: self.prepare_booking_date(False))
+```
+
+### 2. เพิ่มเมธอดใน `Booking`
+
+```python
+from datetime import date, timedelta
+```
+
+แล้วเพิ่ม:
+
+```python
+def prepare_booking_date(self, today: bool):
+    if today:
+        self.booking_date_visit = date.today().isoformat()
+    else:
+        self.booking_date_visit = self._next_non_holiday_date(date.today() + timedelta(days=1))
+
+    self.select_prisoner_booking(today)
+
+def _next_non_holiday_date(self, current_date: date):
+    while self.db.is_holiday(current_date.isoformat()):
+        current_date += timedelta(days=1)
+    return current_date.isoformat()
+```
+
+### 3. เพิ่มเมธอดตรวจสอบวันหยุดใน db.py
+
+```python
+@log_db_exceptions
+def is_holiday(self, date_str):
+    with self.conn.cursor() as cur:
+        cur.execute('SELECT 1 FROM holidays WHERE date = %s', (date_str,))
+        return cur.fetchone() is not None
+```
+
+### 4. รูปแบบวันที่
+
+`date.today().isoformat()` จะได้รูปแบบ:
+
+- `2026-06-12`
+
+### สรุป
+
+- กด `btn_book_today` → `self.booking_date_visit = วันนี้`
+- กด `btn_book_advance` → เริ่มจากพรุ่งนี้ แล้วข้ามวันหยุดใน `db.holidays`
+- ใช้ `date.isoformat()` เพื่อเก็บเป็น `YYYY-MM-DD`
+
+ถ้าต้องการให้ข้ามวันหยุดแบบรวมทั้งวันเสาร์-อาทิตย์ด้วย บอกได้เลยผมเพิ่ม logic ให้ได้ครับ
+
+User: ต้องการข้ามวันหยุดที่เป็นเสาร์อาทิตย์ด้วย
+
+GitHub Copilot: กำลังตรวจสอบ booking.py ว่ามีตัวแปร `booking_date_visit` อยู่หรือไม่ แล้วจะให้ตัวอย่างโค้ดใช้งานข้ามวันหยุดและเสาร์อาทิตย์ได้อย่างชัดเจน
+
+Searched for regex `booking_date_visit|prepare_booking_date|_next_non_holiday_date|timedelta|date.today` (`**/ui/book_visit/booking.py`), 13 results
+
+กำลังตรวจสอบโค้ด booking.py รอบ `prepare_booking_date` และดูว่ามีการเรียก `datetime` แบบใดอยู่เพื่อให้คำตอบตรงตามโครงสร้างของไฟล์ครับ
+
+Read [](file:///c%3A/Users/ADMINS/Visit_by_pyqt6/ui/book_visit/booking.py#1-1), lines 1 to 190
+
+## ข้ามวันหยุดและเสาร์-อาทิตย์
+
+ใช่ครับ ต้องแก้ทั้งสองฝั่ง:
+
+1. db.py ให้ `get_is_holiday()` เช็ควันหยุดจากตาราง `holidays`
+2. booking.py ให้ `_next_non_holiday_date()` ข้ามทั้งวันหยุดและวันเสาร์-อาทิตย์
+
+---
+
+### 1. ใน db.py
+
+แก้ `get_is_holiday()` ให้เป็น:
+
+```python
+    @log_db_exceptions
+    def get_is_holiday(self, date_str):
+        '''
+        ดึงข้อมูลวันหยุดจากตาราง holidays
+        '''
+        with self.conn.cursor() as cur:
+            cur.execute('SELECT 1 FROM holidays WHERE date = %s', (date_str,))
+            return cur.fetchone() is not None
+```
+
+---
+
+### 2. ใน booking.py
+
+แก้ `_next_non_holiday_date()` เป็น:
+
+```python
+    def _next_non_holiday_date(self, current_date: date):
+        while current_date.weekday() in (5, 6) or self.db.get_is_holiday(current_date.isoformat()):
+            current_date += timedelta(days=1)
+        return current_date.isoformat()
+```
+
+- `weekday() == 5` คือเสาร์
+- `weekday() == 6` คืออาทิตย์
+- `get_is_holiday()` เช็ควันหยุดจาก `db.holidays`
+
+---
+
+### 3. การใช้งานปุ่ม
+
+ปุ่ม `btn_book_today` จะได้:
+
+```python
+self.booking_date_visit = date.today().isoformat()
+```
+
+ปุ่ม `btn_book_advance` จะได้:
+
+```python
+self.booking_date_visit = self._next_non_holiday_date(date.today() + timedelta(days=1))
+```
+
+---
+
+## สรุป
+
+ถ้ากด `btn_book_advance`:
+
+- เริ่มจากพรุ่งนี้
+- ถ้าเป็นเสาร์/อาทิตย์ หรืออยู่ใน `holidays`
+- ก็เลื่อนไปวันถัดไปจนกว่าจะเจอวันธรรมดาที่ไม่ใช่วันหยุด
+
+หากต้องการให้ `btn_book_today` ยังไม่รับวันเสาร์-อาทิตย์ด้วย ก็แจ้งได้ครับ จะเพิ่ม logic ให้ด้วย
+
+User: เอา self.booking_date_visit มาดึงวันเหมือนกันกับ #sym:today 3
+
+GitHub Copilot: ## ใช้ `self.booking_date_visit` แทน `today` จากเวลาปัจจุบัน
+
+ตรงใน `select_prisoner_booking()` ตอนนี้คุณใช้:
+
+```python
+current_time = t.localtime()
+thai_days = [...]
+today = thai_days[current_time.tm_wday]
+```
+
+ถ้าจะให้ใช้ `self.booking_date_visit` แทน ให้แปลงจากวันที่ที่จองได้เลย:
+
+```python
+if self.booking_date_visit:
+    dt = datetime.strptime(self.booking_date_visit, "%Y-%m-%d")
+else:
+    dt = datetime.now()
+
+thai_days = ["จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์","อาทิตย์"]
+today = thai_days[dt.weekday()]
+```
+
+### ตัวอย่างที่แนะนำ
+
+```python
+def select_prisoner_booking(self, state_booking_today=bool):
+    self.clear_layout(...)
+    ...
+    self.a_prisoners_group.show()
+    self.a_mode_bookint_group.show()
+
+    if state_booking_today:
+        self.mode_label.setText('จองเยี่ยมวันนี้')
+    else:
+        self.mode_label.setText('จองเยี่ยมล่วงหน้า')
+
+    if self.booking_date_visit:
+        dt = datetime.strptime(self.booking_date_visit, "%Y-%m-%d")
+    else:
+        dt = datetime.now()
+
+    thai_days = ["จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์","อาทิตย์"]
+    today = thai_days[dt.weekday()]
+
+    allower_dan = (self.allowed_dan_by_dan or {}).get(today, [])
+    ...
+```
+
+### ผลลัพธ์
+
+- `btn_book_today` จะใช้วันจาก `date.today().isoformat()`
+- `btn_book_advance` จะใช้วันจาก `self.booking_date_visit` ที่ข้ามเสาร์-อาทิตย์และวันหยุดแล้ว
+- `allower_dan` จะเลือกจากวันจริงของวันจอง ไม่ใช่วันปัจจุบันเสมอไป
+
+User: self.booking_date_visit ทำให้เป็น วันเดือนปี พุทธศักราช
+
+GitHub Copilot: ## ทำให้ `self.booking_date_visit` เป็นวันเดือนปี พุทธศักราช
+
+ถ้าอยากได้เป็นสตริงวันเดือนปีแบบไทย ให้ใช้ฟังก์ชัน `get_thai_date()` ที่มีอยู่แล้วใน booking.py
+
+### ตัวอย่าง
+
+```python
+self.booking_date_visit = date.today().isoformat()  # เก็บไว้ในรูป YYYY-MM-DD
+self.booking_date_visit_th = self.get_thai_date(self.booking_date_visit)
+```
+
+หรือถ้าอยากเก็บตรง `self.booking_date_visit` เลย:
+
+```python
+self.booking_date_visit = self.get_thai_date(date.today().isoformat())
+```
+
+### ถ้าต้องการเฉพาะ `วัน เดือน ปี` (ไม่ต้องมีคำว่า “วัน”)
+
+เพิ่มเมธอดเล็กๆ:
+
+```python
+def get_thai_date_short(self, date_str):
+    thai_months = [
+        "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน",
+        "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม",
+        "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+    ]
+    dt = datetime.strptime(date_str, "%Y-%m-%d")
+    return f"{dt.day} {thai_months[dt.month - 1]} {dt.year + 543}"
+```
+
+แล้วใช้:
+
+```python
+self.booking_date_visit = self.get_thai_date_short(date.today().isoformat())
+```
+
+### สรุป
+
+- `self.booking_date_visit` หากเก็บเป็น ISO (`YYYY-MM-DD`) ควรใช้แบบเก็บข้อมูล
+- หากต้องการแสดงเป็นพุทธศักราช ให้แปลงด้วย `get_thai_date(...)` หรือฟังก์ชันใหม่ตามต้องการ
+
+User: โครงสร้างที่เป็น {
+            "cid": self.cid,
+            "title": self.title,
+            "firstname": self.firstname,
+            "lastname": self.lastname,
+            "address": self.address
+        }
+คือ
+
+GitHub Copilot: ## คำตอบ
+
+บล็อกนี้คือ `Python dict` (พจนานุกรม)
+
+```python
+{
+    "cid": self.cid,
+    "title": self.title,
+    "firstname": self.firstname,
+    "lastname": self.lastname,
+    "address": self.address
+}
+```
+
+### หมายถึง
+
+- `cid`, `title`, `firstname`, `lastname`, `address` คือ key แบบ `str`
+- ค่าแต่ละตัวคือค่า attribute ของอ็อบเจ็กต์ เช่น `self.cid`
+- ผลลัพธ์เป็น mapping แบบ `key: value`
+
+> ในภาษาอื่นมันดูเหมือน JSON object แต่ใน Python นี่คือ `dict` ครับ
+
+User: มีหลายชุดได้ไหมในตัวแปรเดียว
+
+GitHub Copilot: ## ตอบ
+
+ได้ครับ ใน Python ตัวแปรหนึ่งตัวสามารถเก็บค่าได้เพียงค่าเดียว แต่ค่านั้นอาจเป็น container ที่เก็บหลายชุดได้ เช่น
+
+- `dict`
+- `list`
+- `tuple`
+- `dataclass` / `namedtuple`
+
+### ตัวอย่างใน booking.py
+
+```python
+self.booking_date_visit = {
+    "iso": date.today().isoformat(),
+    "thai": self.get_thai_date(date.today().isoformat()),
+    "thai_day": "ศุกร์"
+}
+```
+
+หรือถ้าอยากเก็บหลายชุดวันที่:
+
+```python
+self.booking_date_visit = [
+    {"iso": "2026-06-12", "thai": "วันศุกร์ ที่ 12 มิถุนายน 2569"},
+    {"iso": "2026-06-15", "thai": "วันเสาร์ ที่ 15 มิถุนายน 2569"}
+]
+```
+
+### ถ้าใช้ในโค้ดของคุณ
+
+ตอนนี้ `self.booking_date_visit` ใช้เก็บวันเดียวได้ ถ้าต้องการเก็บทั้งวันไทยและ ISO พร้อมกัน ให้เปลี่ยนเป็น:
+
+```python
+self.booking_date_visit = {
+    "iso": date.today().isoformat(),
+    "thai": self.get_thai_date(date.today().isoformat())
+}
+```
+
+แล้วเรียกใช้งานได้แบบ:
+
+```python
+self.booking_date_visit["iso"]
+self.booking_date_visit["thai"]
+```
+
+> สรุป: "มีหลายชุดได้ไหมในตัวแปรเดียว" ได้ ถ้าใช้ container อย่าง `dict` / `list` / `tuple`
+
+Analyzing your answers...
+
+ได้ครับ
+
+### ถ้าต้องการเก็บหลายชุดข้อมูลในตัวแปรเดียว
+ใช้ container เช่น `dict` หรือ `list`
+
+ตัวอย่างสำหรับ `booking_date_visit`:
+
+```python
+self.booking_date_visit = {
+    "iso": date.today().isoformat(),
+    "thai": self.get_thai_date(date.today().isoformat()),
+    "thai_day": "ศุกร์"
+}
+```
+
+แล้วเรียกใช้ได้:
+
+```python
+self.booking_date_visit["iso"]
+self.booking_date_visit["thai"]
+self.booking_date_visit["thai_day"]
+```
+
+หรือถ้าจะเก็บหลายวัน:
+
+```python
+self.booking_date_visit = [
+    {"iso": "2026-06-12", "thai": "วันศุกร์ ที่ 12 มิถุนายน 2569"},
+    {"iso": "2026-06-15", "thai": "วันจันทร์ ที่ 15 มิถุนายน 2569"}
+]
+```
+
+> สรุป: ตัวแปรเดียวเก็บ "หลายชุด" ได้ ถ้าใช้ `dict` / `list` / `tuple` เป็นค่าของมัน
+
+User: การกำหนดรอบเยี่ยม ให้กำหนดโดย self.thai_day แยกเช้า-บ่าย โดย จันทร์เช้า และบ่าย เป็นแดน 6
+อังคาร เช้า-บ่าย แดน 5
+พุธเช้า แดน 1 type = 'ผู้ต้องกักขัง' ให้เลือกรอบ 4 บ่าย 2 3 4 7 ถ้า type = 'ผู้ต้องกักขัง' ให้เลือกรอบ 7
+พฤหัส เช้า แดน 5 บ่าย แดน 6
+ศุกร์ เช้า แดน 1 type = 'ผู้ต้องกักขัง'  บ่าย 2 3 4 7 type = 'ผู้ต้องกักขัง' ให้เลือกรอบ 7
+
+GitHub Copilot: ## ทำได้ โดยใช้ `self.thai_day` + `prisoner type`
+
+ใน booking.py ให้เพิ่ม helper ที่แปลงวันไทยเป็นชุดรอบที่อนุญาต แล้วใช้กรอง `self.morning_rounds` / `self.afternoon_rounds`
+
+### 1. ตรวจสอบว่า `prisoner_data` มี `type`
+ตอนนี้ `get_prisoners_from_relative_id()` ยังไม่ดึง `p.type` มา ดังนั้นถ้าต้องใช้เงื่อนไข `type == 'ผู้ต้องกักขัง'` ต้องเพิ่มใน query ด้วย
+
+ตัวอย่าง:
+
+```sql
+SELECT p.prisoner_id, p.sex, p.f_name, p.l_name, p.level, p.dan,
+       p.status, p.disciplinary, p.type, r.relation
+FROM prisoners p
+JOIN relations r ON p.prisoner_id = r.prisoner_id
+WHERE r.relative_id = %s
+```
+
+แล้ว `prisoner_data[8]` จะเป็น `type`
+
+---
+
+### 2. สร้าง helper map รอบเยี่ยม
+
+```python
+def _allowed_round_numbers(self, prisoner_type: str):
+    if self.thai_day == "จันทร์":
+        return {"morning": [1, 2, 3, 4], "afternoon": [5, 6, 7]}
+
+    if self.thai_day == "อังคาร":
+        return {"morning": [1, 2, 3, 4], "afternoon": [5, 6, 7]}
+
+    if self.thai_day == "พุธ":
+        if prisoner_type == "ผู้ต้องกักขัง":
+            return {"morning": [4], "afternoon": [7]}
+        return {"morning": [1], "afternoon": [2, 3, 4, 7]}
+
+    if self.thai_day == "พฤหัสบดี":
+        return {"morning": [1, 2, 3, 4], "afternoon": [5, 6, 7]}
+
+    if self.thai_day == "ศุกร์":
+        if prisoner_type == "ผู้ต้องกักขัง":
+            return {"morning": [1], "afternoon": [7]}
+        return {"morning": [1], "afternoon": [2, 3, 4, 7]}
+
+    return {"morning": [1, 2, 3, 4], "afternoon": [5, 6, 7]}
+```
+
+---
+
+### 3. สร้างรอบจากเลขที่อนุญาต
+
+```python
+def _filter_rounds(self, round_list, allowed_numbers):
+    result = []
+    for idx, item in enumerate(round_list, start=1):
+        if idx in allowed_numbers:
+            result.append(item)
+    return result
+```
+
+---
+
+### 4. ใช้ใน `choose_a_round_and_followers`
+
+```python
+def choose_a_round_and_followers(self, prisoner_data):
+    prisoner_type = prisoner_data[8]  # ถ้า query เพิ่ม p.type
+    allowed = self._allowed_round_numbers(prisoner_type)
+
+    self.clear_layout(self.button_layout)
+    self.clear_layout(self.booking_layout)
+    self.clear_layout(self.prisoner_layout)
+    self.clear_layout(self.round_layout)
+    self.clear_layout(self.followers_layout)
+    self.clear_layout(self.recheck_layout)
+
+    self.a_prisoners_group.hide()
+    self.a_round_group.show()
+
+    self.round_group = QButtonGroup(self)
+    self.round_group.setExclusive(True)
+
+    head_label = QLabel('เลือกรอบเยี่ยม')
+    self.round_layout.addWidget(head_label)
+
+    for round_text, time_start, time_close in self._filter_rounds(self.morning_rounds, allowed["morning"]):
+        btn = QRadioButton(round_text)
+        btn.setProperty('time_start', time_start)
+        btn.setProperty('time_close', time_close)
+        btn.clicked.connect(lambda checked=False, time_start=time_start: self.choose_a_follower(time_start))
+        self.round_group.addButton(btn)
+        self.round_layout.addWidget(btn)
+
+    for round_text, time_start, time_close in self._filter_rounds(self.afternoon_rounds, allowed["afternoon"]):
+        btn = QRadioButton(round_text)
+        btn.setProperty('time_start', time_start)
+        btn.setProperty('time_close', time_close)
+        btn.clicked.connect(lambda checked=False, time_start=time_start: self.choose_a_follower(time_start))
+        self.round_group.addButton(btn)
+        self.round_layout.addWidget(btn)
+```
+
+---
+
+## สรุปตามข้อกำหนดคุณ
+
+- `จันทร์` เช้า-บ่าย → ทุกตอน (แดน 6)
+- `อังคาร` เช้า-บ่าย → ทุกตอน (แดน 5)
+- `พุธ` เช้า → รอบ 1, ยกเว้นถ้า `type == 'ผู้ต้องกักขัง'` ให้เลือกเฉพาะรอบ 4
+- `พุธ` บ่าย → รอบ 2,3,4,7; ถ้า `type == 'ผู้ต้องกักขัง'` ให้เลือกเฉพาะรอบ 7
+- `พฤหัส` เช้า → รอบ 1-4, บ่าย → รอบ 5-7
+- `ศุกร์` เช้า → รอบ 1, บ่าย → รอบ 2,3,4,7; ถ้า `type == 'ผู้ต้องกักขัง'` ให้เลือกเฉพาะรอบ 7
+
+> ถ้าต้องการให้ `self.thai_day` ถูกกำหนดจาก `booking_date_visit` เสมอ ให้ย้ายการ set `self.thai_day` ไปไว้ใน `prepare_booking_date()` ด้วย
+
+Searched for regex `def select_prisoner_booking|def choose_a_round_and_followers|self.thai_day|derive today` (`**/ui/book_visit/booking.py`), 5 results
+
+## แนวทางกำหนดรอบเยี่ยมตาม `self.thai_day`
+
+ใน booking.py ให้ใช้ `self.thai_day` กับ `prisoner_data` เพื่อกรองรอบเช้าและบ่ายตามกฎ
+
+### 1. ตรวจสอบว่า `prisoner_data` มี `type`
+
+ตอนนี้ `get_prisoners_from_relative_id()` ยังดึงเฉพาะ:
+
+- `prisoner_id`
+- `sex`
+- `f_name`
+- `l_name`
+- `level`
+- `dan`
+- `status`
+- `disciplinary`
+- `relation`
+
+ถ้าจะใช้เงื่อนไข `type == 'ผู้ต้องกักขัง'` ต้องแก้ query ใน db.py ให้ดึง `p.type` ด้วย
+
+เช่น:
+
+```sql
+SELECT p.prisoner_id, p.sex, p.f_name, p.l_name, p.level, p.dan,
+       p.status, p.disciplinary, p.type, r.relation
+FROM prisoners p
+JOIN relations r ON p.prisoner_id = r.prisoner_id
+WHERE r.relative_id = %s
+```
+
+แล้ว `prisoner_data[8]` จะเป็น `type`
+
+---
+
+### 2. สร้าง mapping ของรอบเยี่ยม
+
+เพิ่มฟังก์ชันใน `Booking`:
+
+```python
+def _allowed_round_numbers(self, prisoner_type: str):
+    if self.thai_day == "จันทร์":
+        return {"morning": [1, 2, 3, 4], "afternoon": [5, 6, 7]}
+    if self.thai_day == "อังคาร":
+        return {"morning": [1, 2, 3, 4], "afternoon": [5, 6, 7]}
+    if self.thai_day == "พุธ":
+        if prisoner_type == "ผู้ต้องกักขัง":
+            return {"morning": [4], "afternoon": [7]}
+        return {"morning": [1], "afternoon": [2, 3, 4, 7]}
+    if self.thai_day == "พฤหัสบดี":
+        return {"morning": [1, 2, 3, 4], "afternoon": [5, 6, 7]}
+    if self.thai_day == "ศุกร์":
+        if prisoner_type == "ผู้ต้องกักขัง":
+            return {"morning": [1], "afternoon": [7]}
+        return {"morning": [1], "afternoon": [2, 3, 4, 7]}
+    return {"morning": [1, 2, 3, 4], "afternoon": [5, 6, 7]}
+```
+
+---
+
+### 3. กรองรอบด้วยเลขรอบ
+
+เพิ่ม helper อีกตัว:
+
+```python
+def _filter_rounds(self, round_list, allowed_numbers):
+    return [
+        item for idx, item in enumerate(round_list, start=1)
+        if idx in allowed_numbers
+    ]
+```
+
+---
+
+### 4. ใช้ใน `choose_a_round_and_followers()`
+
+ปรับส่วนสร้างปุ่มรอบเป็น:
+
+```python
+def choose_a_round_and_followers(self, prisoner_data):
+    prisoner_type = prisoner_data[8]  # ถ้า query เพิ่ม p.type
+    allowed = self._allowed_round_numbers(prisoner_type)
+
+    self.clear_layout(self.button_layout)
+    self.clear_layout(self.booking_layout)
+    self.clear_layout(self.prisoner_layout)
+    self.clear_layout(self.round_layout)
+    self.clear_layout(self.followers_layout)
+    self.clear_layout(self.recheck_layout)
+
+    self.a_prisoners_group.hide()
+    self.a_round_group.show()
+
+    self.round_group = QButtonGroup(self)
+    self.round_group.setExclusive(True)
+
+    head_label = QLabel('เลือกรอบเยี่ยม')
+    self.round_layout.addWidget(head_label)
+
+    for round_text, time_start, time_close in self._filter_rounds(self.morning_rounds, allowed["morning"]):
+        btn = QRadioButton(round_text)
+        btn.setProperty('time_start', time_start)
+        btn.setProperty('time_close', time_close)
+        btn.clicked.connect(lambda checked=False, time_start=time_start: self.choose_a_follower(time_start))
+        self.round_group.addButton(btn)
+        self.round_layout.addWidget(btn)
+
+    for round_text, time_start, time_close in self._filter_rounds(self.afternoon_rounds, allowed["afternoon"]):
+        btn = QRadioButton(round_text)
+        btn.setProperty('time_start', time_start)
+        btn.setProperty('time_close', time_close)
+        btn.clicked.connect(lambda checked=False, time_start=time_start: self.choose_a_follower(time_start))
+        self.round_group.addButton(btn)
+        self.round_layout.addWidget(btn)
+
+    ...
+```
+
+---
+
+## สรุปตามเงื่อนไขที่ให้
+
+- จันทร์ เช้า-บ่าย → ทุกรอบ
+- อังคาร เช้า-บ่าย → ทุกรอบ
+- พุธ เช้า → รอบ 1 (ปกติ), ถ้า `type == 'ผู้ต้องกักขัง'` ให้รอบ 4
+- พุธ บ่าย → รอบ 2,3,4,7 (ปกติ), ถ้า `type == 'ผู้ต้องกักขัง'` ให้รอบ 7
+- พฤหัส เช้า → รอบ 1-4, บ่าย → รอบ 5-7
+- ศุกร์ เช้า → รอบ 1, บ่าย → รอบ 2,3,4,7 (ปกติ), ถ้า `type == 'ผู้ต้องกักขัง'` ให้รอบ 7
+
+> ถ้าต้องการให้ `self.thai_day` มาจาก `self.booking_date_visit` เสมอ ให้กำหนด `self.thai_day` ใน `prepare_booking_date()` ก่อนเรียก `select_prisoner_booking()`ด้วย

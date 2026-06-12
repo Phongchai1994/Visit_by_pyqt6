@@ -328,7 +328,13 @@ class POSTGRESQL():
 # -----------------------------------------------
 #   หมวด get ดึงข้อมูล
 # -----------------------------------------------
-
+    @log_db_exceptions
+    def get_is_holiday(self, date_str):
+        '''
+        ดึงข้อมูลวันหยุด'''
+        with self.conn.cursor() as cur:
+            cur.execute('SELECT 1 FROM holidays WHERE date = %s', (date_str,))
+            return cur.fetchone() is not None
 
     @log_db_exceptions
     def get_all_prisoners_list(self):
@@ -388,11 +394,11 @@ class POSTGRESQL():
     @log_db_exceptions
     def get_prisoners_from_relative_id(self, relative_id):
         '''
-        ดึงข้อมูลผู้ต้องขัง จาก id ญาติ result = SELECT p.prisoner_id, p.sex, p.f_name, p.l_name, p.level, p.dan, p.status, p.disciplinary, r.relation'''
+        ดึงข้อมูลผู้ต้องขัง จาก id ญาติ result = SELECT p.prisoner_id, p.sex, p.f_name, p.l_name, p.level, p.dan, p.status, p.disciplinary, p.type, r.relation'''
         with self.conn.cursor() as cur:
             cur.execute(
                 '''
-                SELECT p.prisoner_id, p.sex, p.f_name, p.l_name, p.level, p.dan, p.status, p.disciplinary, r.relation
+                SELECT p.prisoner_id, p.sex, p.f_name, p.l_name, p.level, p.dan, p.status, p.disciplinary, p.type, r.relation
                 FROM prisoners p
                 JOIN relations r ON p.prisoner_id = r.prisoner_id
                 WHERE r.relative_id = %s

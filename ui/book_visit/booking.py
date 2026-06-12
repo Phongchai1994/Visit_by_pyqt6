@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (
     QRadioButton, QButtonGroup, QCheckBox, QMessageBox, QHBoxLayout
 )
 from PyQt6.QtCore import Qt,QTimer
-from datetime import datetime
+from datetime import datetime, timedelta, date
 
 from db.db import POSTGRESQL
 from ui.alert_box import AlertBox
@@ -11,6 +11,7 @@ from utils.resource import Resource_Helper
 
 import time as t
 import json, os
+
 
 class Booking(QDialog):
     IDX_DATE = 0
@@ -47,11 +48,19 @@ class Booking(QDialog):
             self.allowed_dan_by_dan = None
             AlertBox.error(self,title='แจ้งเตือนการโหลด josn',message=f'ตรวจสอบไฟล์ booking_allowed.json\n{e}')
         # print(self.allowed_dan_by_dan)
+
+        # ตัวแปรเก็บข้อมูลไปบันทึกใน db
+        self.booking_date_visit = None
+        self.booking_time_visit = None
+        self.booking_prisoner = {}
+        self.booking_relative = {}
+        self.booking_channel = None
+
+        self.thai_day = None
         self.data_booking = []
         self.follower_vars = []
         self.count_reserve = 0
         self.current_channel = None
-        self.a_choose_booking_group = None
         self.morning_rounds = [
             ("รอบที่ 1 เวลา 09.30 - 09.45", "09:30:00", "09:15:00"),
             ("รอบที่ 2 เวลา 10.00 - 10.15", "10:00:00", "09:45:00"),
@@ -64,6 +73,11 @@ class Booking(QDialog):
             ("รอบที่ 7 เวลา 14.15 - 14.30", "14:15:00", "13:15:00"),
         ]
 
+        self.mode_label = QLabel()
+        vbox_mode = QVBoxLayout()
+        vbox_mode.addWidget(self.mode_label, stretch=0, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.a_mode_bookint_group = QGroupBox('โหมดการจองเยี่ยม')
+        self.a_mode_bookint_group.setLayout(vbox_mode)
         self.a_choose_booking_group = QGroupBox('เลือกการจองเยี่ยม')
         self.a_prisoners_group = QGroupBox('เลือกผู้ต้องขัง')
         self.a_round_group = QGroupBox('เลือกรอบเยี่ยม')
@@ -83,14 +97,17 @@ class Booking(QDialog):
         self.a_round_group.hide()
         self.a_followers_group.hide()
         self.a_recheck_group.hide()
+        self.a_mode_bookint_group.hide()
 
         self.main_layout.addWidget(self.time_label, alignment=Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignCenter)
+        self.main_layout.addWidget(self.a_mode_bookint_group)
         self.main_layout.addWidget(self.a_choose_booking_group)
         self.main_layout.addWidget(self.a_prisoners_group)
         self.main_layout.addWidget(self.a_round_group)
         self.main_layout.addWidget(self.a_followers_group)
         self.main_layout.addWidget(self.a_recheck_group)
-        self.main_layout.addWidget(self.a_button_group)
+        self.main_layout.addStretch(1)
+        self.main_layout.addWidget(self.a_button_group, stretch=0, alignment=Qt.AlignmentFlag.AlignBottom)
         self.choose_a_booking_page()
         
         # self._build_ui()
@@ -107,6 +124,7 @@ class Booking(QDialog):
         self.clear_layout(self.followers_layout)
         self.clear_layout(self.recheck_layout)
 
+        self.a_mode_bookint_group.hide()
         self.a_prisoners_group.hide()
         self.a_choose_booking_group.show()
 
@@ -118,13 +136,27 @@ class Booking(QDialog):
         self.booking_layout.addWidget(btn_book_advance)
         self.button_layout.addWidget(btn_close_window)
 
-        btn_book_today.clicked.connect(lambda: self.select_prisoner_booking(True))
-        btn_book_advance.clicked.connect(lambda: self.select_prisoner_booking(False))
+        btn_book_today.clicked.connect(lambda: self.prepare_booking_date(True))
+        btn_book_advance.clicked.connect(lambda: self.prepare_booking_date(False))
         btn_close_window.clicked.connect(self.close)
+
+    def prepare_booking_date(self, today:bool):
+        if today:
+            self.booking_date_visit = date.today().isoformat()
+        else:
+            self.booking_date_visit = self._next_non_holiday_date(date.today() + timedelta(days=1))
+
+        self.select_prisoner_booking(today)
+
+    def _next_non_holiday_date(self, current_date:date):
+        while current_date.weekday() in (5, 6) or self.db.get_is_holiday(current_date.isoformat()):
+            current_date += timedelta(days=1)
+        return current_date.isoformat()
 
     def select_prisoner_booking(self, state_booking_today=bool):
         '''
         หน้าเลือกผู้ต้องขัง'''
+        thai_date_full_str = self.get_thai_date(self.booking_date_visit)
 
         self.clear_layout(self.button_layout)
         self.clear_layout(self.booking_layout)
@@ -136,27 +168,33 @@ class Booking(QDialog):
         self.a_choose_booking_group.hide()
         self.a_round_group.hide()
         self.a_prisoners_group.show()
+        self.a_mode_bookint_group.show()
 
         if state_booking_today:
-            head_label = QLabel('จองเยี่ยมวันนี้')
+            self.mode_label.setText(f'จองเยี่ยมวันนี้\n({thai_date_full_str})')
         else:
-            head_label = QLabel('จองเยี่ยมล่วงหน้า')
+            self.mode_label.setText(f'จองเยี่ยมล่วงหน้า\n({thai_date_full_str})')
 
-        self.prisoner_layout.addWidget(head_label)
+        if self.booking_date_visit:
+            dt = datetime.strptime(self.booking_date_visit, "%Y-%m-%d")
+        else:
+            dt = datetime.now()
 
-        current_time = t.localtime()
         thai_days = ["จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์","อาทิตย์"]
-        today = thai_days[current_time.tm_wday]
-
-        allower_dan = (self.allowed_dan_by_dan or {}).get(today, [])
-        print(f'today = {allower_dan}')
+        self.thai_day = thai_days[dt.weekday()]
+        allower_dan = (self.allowed_dan_by_dan or {}).get(self.thai_day, [])
+        # print(today)
+        # print(f'today = {allower_dan}')
 
         for data in self.related_to_prisoners:
-            print(data)
-            if data[5] in allower_dan:
-                dis = '-' if data[7] is None else str(data[7])
-                label = f'{str(data[2])} {str(data[3])} {str(data[4])} {str(data[5])} {dis} {str(data[8])}'
+            # print(data)
+            if data[5] in allower_dan and data[6] == 'อยู่':
+                dis = '' if data[7] is None else str(data[7])
+                p_type = 'กักขัง' if data[8] is 'ผู้ต้องกักขัง' else ''
+                label = f'{str(data[2])} {str(data[3])[:3]}... ชั้น:{str(data[4])}\nแดน:{str(data[5])} ความสัมพันธ์:{str(data[9])} {dis} {p_type}'
                 btn = QPushButton(label)
+                if data[7] == 'ผิดวินัย':
+                    btn.setDisabled(True)
                 btn.clicked.connect(lambda checked=False, row=data: self.choose_a_round_and_followers(row))
                 self.prisoner_layout.addWidget(btn)
 
@@ -171,7 +209,21 @@ class Booking(QDialog):
     def choose_a_round_and_followers(self, prisoner_data):
         '''
         เลือกรอบเยี่ยม และผู้ติดตาม'''
-        print(prisoner_data)
+        # print(prisoner_data)
+        prisoner_type = prisoner_data[8]
+        allowed = self._allowed_round_numbers(prisoner_type)
+        self.booking_prisoner = {
+            'prisoner_id' : prisoner_data[0],
+            'gender' : prisoner_data[1],
+            'f_name' : prisoner_data[2],
+            'l_name' : prisoner_data[3],
+            'level' : prisoner_data[4],
+            'dan' : prisoner_data[5],
+            'status' : prisoner_data[6],
+            'dis' : prisoner_data[7]
+        }
+        # print(f'self.booking_prisoner = {self.booking_prisoner}')
+
         self.clear_layout(self.button_layout)
         self.clear_layout(self.booking_layout)
         self.clear_layout(self.prisoner_layout)
@@ -185,22 +237,20 @@ class Booking(QDialog):
         self.round_group = QButtonGroup(self)
         self.round_group.setExclusive(True)
 
-        head_label = QLabel('เลือกรอบเยี่ยม')
-        self.round_layout.addWidget(head_label)
 
-        for round_text, time_start, time_close in self.morning_rounds:
+        for round_text, time_start, time_close in self._filter_rounds(self.morning_rounds, allowed["morning"]):
             btn = QRadioButton(round_text)
             btn.setProperty('time_start', time_start)
             btn.setProperty('time_close', time_close)
-            btn.clicked.connect(lambda checked=False, time_start = time_start : self.choose_a_follower(time_start))
+            btn.clicked.connect(lambda checked=False, time_start=time_start: self.choose_a_follower(time_start))
             self.round_group.addButton(btn)
             self.round_layout.addWidget(btn)
 
-        for round_text, time_start, time_close in self.afternoon_rounds:  
+        for round_text, time_start, time_close in self._filter_rounds(self.afternoon_rounds, allowed["afternoon"]):
             btn = QRadioButton(round_text)
             btn.setProperty('time_start', time_start)
             btn.setProperty('time_close', time_close)
-            btn.clicked.connect(lambda checked=False, time_start = time_start : self.choose_a_follower(time_start))
+            btn.clicked.connect(lambda checked=False, time_start=time_start: self.choose_a_follower(time_start))
             self.round_group.addButton(btn)
             self.round_layout.addWidget(btn)
 
@@ -212,6 +262,35 @@ class Booking(QDialog):
 
         btn_back.clicked.connect(self.select_prisoner_booking)
         btn_close.clicked.connect(self.close)
+
+    def _allowed_round_numbers(self, prisoner_type: str):
+        if self.thai_day == "จันทร์":
+            return {"morning": [1, 2, 3, 4], "afternoon": [5, 6, 7]}
+
+        if self.thai_day == "อังคาร":
+            return {"morning": [1, 2, 3, 4], "afternoon": [5, 6, 7]}
+
+        if self.thai_day == "พุธ":
+            if prisoner_type == "ผู้ต้องกักขัง":
+                return {"morning": [4], "afternoon": [7]}
+            return {"morning": [1], "afternoon": [2, 3, 4, 7]}
+
+        if self.thai_day == "พฤหัสบดี":
+            return {"morning": [1, 2, 3, 4], "afternoon": [5, 6, 7]}
+
+        if self.thai_day == "ศุกร์":
+            if prisoner_type == "ผู้ต้องกักขัง":
+                return {"morning": [1], "afternoon": [7]}
+            return {"morning": [1], "afternoon": [2, 3, 4, 7]}
+
+        return {"morning": [1, 2, 3, 4], "afternoon": [5, 6, 7]}
+
+    def _filter_rounds(self, round_list, allowed_numbers):
+        result = []
+        for idx, item in enumerate(round_list, start=1):
+            if idx in allowed_numbers:
+                result.append(item)
+        return result
 
     def choose_a_follower(self, time_start):
         # follower = self.db.get_relatives_follower_from_p_id(prisoner_id=)
