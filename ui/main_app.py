@@ -153,7 +153,7 @@ class MAINWINDOW(QMainWindow):
 
     def init_menu(self):
         menubar = self.menuBar()
-        file_menu = menubar.addMenu('ไฟล์')
+        file_menu = menubar.addMenu('ตั้งค่า')
         exit_action = QAction('ออก', self)
         exit_action.triggered.connect(self.close)
         file_menu.addAction(exit_action)

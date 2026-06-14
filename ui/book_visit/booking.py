@@ -21,6 +21,7 @@ class Booking(QDialog):
 
     def __init__(self,relative_data, parent = None):
         super().__init__(parent)
+        print('class Booking(QDialog)')
         self.setWindowTitle("จองเยี่ยม")
         self.setModal(True)
         self.resize(520, 760)
@@ -61,16 +62,15 @@ class Booking(QDialog):
         self.follower_vars = []
         self.count_reserve = 0
         self.current_channel = None
-        self.morning_rounds = [
+        self.boooking_round = [
             ("รอบที่ 1 เวลา 09.30 - 09.45", "09:30:00", "09:15:00"),
             ("รอบที่ 2 เวลา 10.00 - 10.15", "10:00:00", "09:45:00"),
             ("รอบที่ 3 เวลา 10.30 - 10.45", "10:30:00", "10:15:00"),
             ("รอบที่ 4 เวลา 11.00 - 11.15", "11:00:00", "10:15:00"),
-        ]
-        self.afternoon_rounds = [
             ("รอบที่ 5 เวลา 13.15 - 13.30", "13:15:00", "13:00:00"),
             ("รอบที่ 6 เวลา 13.45 - 14.00", "13:45:00", "13:15:00"),
             ("รอบที่ 7 เวลา 14.15 - 14.30", "14:15:00", "13:15:00"),
+            ("รอบพิเศษ เวลา 12.00 - 13.00", "12:00:00", "12:45:00")
         ]
 
         self.mode_label = QLabel()
@@ -142,7 +142,8 @@ class Booking(QDialog):
 
     def prepare_booking_date(self, today:bool):
         if today:
-            self.booking_date_visit = date.today().isoformat()
+            # self.booking_date_visit = date.today().isoformat()
+            self.booking_date_visit = "2026-06-15"
         else:
             self.booking_date_visit = self._next_non_holiday_date(date.today() + timedelta(days=1))
 
@@ -156,6 +157,7 @@ class Booking(QDialog):
     def select_prisoner_booking(self, state_booking_today=bool):
         '''
         หน้าเลือกผู้ต้องขัง'''
+
         thai_date_full_str = self.get_thai_date(self.booking_date_visit)
 
         self.clear_layout(self.button_layout)
@@ -182,6 +184,9 @@ class Booking(QDialog):
 
         thai_days = ["จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์","อาทิตย์"]
         self.thai_day = thai_days[dt.weekday()]
+        if self.allowed_dan_by_dan is None:
+            AlertBox.error(self, title='ไฟล์ booking_allowed.json', message='ไม่สามารถโหลดไฟล์ booking_allowed.json ได้')
+            return
         allower_dan = (self.allowed_dan_by_dan or {}).get(self.thai_day, [])
         # print(today)
         # print(f'today = {allower_dan}')
@@ -190,12 +195,12 @@ class Booking(QDialog):
             # print(data)
             if data[5] in allower_dan and data[6] == 'อยู่':
                 dis = '' if data[7] is None else str(data[7])
-                p_type = 'กักขัง' if data[8] is 'ผู้ต้องกักขัง' else ''
+                p_type = 'กักขัง' if data[8] == 'ผู้ต้องกักขัง' else ''
                 label = f'{str(data[2])} {str(data[3])[:3]}... ชั้น:{str(data[4])}\nแดน:{str(data[5])} ความสัมพันธ์:{str(data[9])} {dis} {p_type}'
                 btn = QPushButton(label)
                 if data[7] == 'ผิดวินัย':
                     btn.setDisabled(True)
-                btn.clicked.connect(lambda checked=False, row=data: self.choose_a_round_and_followers(row))
+                btn.clicked.connect(lambda checked=False, row=data: self.choose_a_round(row))
                 self.prisoner_layout.addWidget(btn)
 
         btn_go_back = QPushButton('กลับ')
@@ -206,12 +211,18 @@ class Booking(QDialog):
         btn_go_back.clicked.connect(self.choose_a_booking_page)
         btn_close.clicked.connect(self.close)
 
-    def choose_a_round_and_followers(self, prisoner_data):
+    def choose_a_round(self, prisoner_data):
         '''
-        เลือกรอบเยี่ยม และผู้ติดตาม'''
+         เลือกรอบเยี่ยม และผู้ติดตาม'''
         # print(prisoner_data)
+        prisoner_dan = prisoner_data[5]
         prisoner_type = prisoner_data[8]
-        allowed = self._allowed_round_numbers(prisoner_type)
+
+        allowed = self._allowed_round_numbers(prisoner_dan, prisoner_type)
+        if allowed is None:
+            AlertBox.error(self, title='ตรวจสอบแดน', message=f'ไม่พบแดน :{allowed}')
+            return
+        # print(f'allowed = {allowed}')
         self.booking_prisoner = {
             'prisoner_id' : prisoner_data[0],
             'gender' : prisoner_data[1],
@@ -236,21 +247,19 @@ class Booking(QDialog):
 
         self.round_group = QButtonGroup(self)
         self.round_group.setExclusive(True)
+        now_time = datetime.now().time()
 
-
-        for round_text, time_start, time_close in self._filter_rounds(self.morning_rounds, allowed["morning"]):
+        for round_text, time_start, time_close in self._filter_rounds(self.boooking_round, allowed):
+            close_time = datetime.strptime(time_close, "%H:%M:%S").time()
             btn = QRadioButton(round_text)
             btn.setProperty('time_start', time_start)
-            btn.setProperty('time_close', time_close)
             btn.clicked.connect(lambda checked=False, time_start=time_start: self.choose_a_follower(time_start))
-            self.round_group.addButton(btn)
-            self.round_layout.addWidget(btn)
-
-        for round_text, time_start, time_close in self._filter_rounds(self.afternoon_rounds, allowed["afternoon"]):
-            btn = QRadioButton(round_text)
-            btn.setProperty('time_start', time_start)
-            btn.setProperty('time_close', time_close)
-            btn.clicked.connect(lambda checked=False, time_start=time_start: self.choose_a_follower(time_start))
+            print(now_time)
+            print(close_time)
+            print(now_time > close_time)
+            if now_time > close_time:
+                print('now_time > close_time')
+                btn.setDisabled(True)
             self.round_group.addButton(btn)
             self.round_layout.addWidget(btn)
 
@@ -263,36 +272,60 @@ class Booking(QDialog):
         btn_back.clicked.connect(self.select_prisoner_booking)
         btn_close.clicked.connect(self.close)
 
-    def _allowed_round_numbers(self, prisoner_type: str):
-        if self.thai_day == "จันทร์":
-            return {"morning": [1, 2, 3, 4], "afternoon": [5, 6, 7]}
 
-        if self.thai_day == "อังคาร":
-            return {"morning": [1, 2, 3, 4], "afternoon": [5, 6, 7]}
+    def _allowed_round_numbers(self, prisoner_dan:str,  prisoner_type: str):
+        '''
+        ต้องเอาไปใส่ใน json ด้วย'''
+        if self.thai_day == "จันทร์" and prisoner_dan == '6':
+            return [1, 2, 3, 4, 5 , 6, 7]
 
-        if self.thai_day == "พุธ":
+        if self.thai_day == "อังคาร" and prisoner_dan == '5':
+            return [1, 2, 3, 4, 5, 6, 7]
+
+        if self.thai_day == "พุธ" and prisoner_dan == '1':
             if prisoner_type == "ผู้ต้องกักขัง":
-                return {"morning": [4], "afternoon": [7]}
-            return {"morning": [1], "afternoon": [2, 3, 4, 7]}
+                return [4]
+            return [1, 2, 3, 4]
+
+        if self.thai_day == "พุธ" and prisoner_dan in ["2", "3", "4", "7"]:
+            if prisoner_type == "ผู้ต้องกักขัง":
+                return[7]
+            return [5, 6, 7]
 
         if self.thai_day == "พฤหัสบดี":
-            return {"morning": [1, 2, 3, 4], "afternoon": [5, 6, 7]}
+            if prisoner_dan == "5":
+                return [1, 2, 3, 4]
+            elif prisoner_dan == "6":
+                return [5, 6, 7]
 
-        if self.thai_day == "ศุกร์":
+        if self.thai_day == "ศุกร์" and prisoner_dan == '1':
             if prisoner_type == "ผู้ต้องกักขัง":
-                return {"morning": [1], "afternoon": [7]}
-            return {"morning": [1], "afternoon": [2, 3, 4, 7]}
+                return [4]
+            return [1, 2, 3, 4]
 
-        return {"morning": [1, 2, 3, 4], "afternoon": [5, 6, 7]}
+        if self.thai_day == "ศุกร์" and prisoner_dan in ["2", "3", "4", "7"]:
+            if prisoner_type == "ผู้ต้องกักขัง":
+                return[7]
+            return [5, 6, 7]
+        
+        if prisoner_dan == 'รจช':
+            return [8]
+
+        return None
 
     def _filter_rounds(self, round_list, allowed_numbers):
+        # print(f'round_list = {round_list}')
+        # print(f'allowed_numbers = {allowed_numbers}')
         result = []
         for idx, item in enumerate(round_list, start=1):
+
             if idx in allowed_numbers:
                 result.append(item)
         return result
 
     def choose_a_follower(self, time_start):
+        '''
+        หน้าเลือกผู้ติดตาม'''
         # follower = self.db.get_relatives_follower_from_p_id(prisoner_id=)
         self.clear_layout(self.button_layout)
         self.clear_layout(self.round_layout)

@@ -27,6 +27,7 @@ if __name__ == '__main__':
             app.setStyleSheet(f.read())
 
         font_path = Resource_Helper.resource_path('etc/font/Sarabun/Sarabun-Regular.ttf')
+        # font_path = Resource_Helper.resource_path('etc/font/JasmineUPC/upcjl.ttf')
         font_id = QFontDatabase.addApplicationFont(font_path)
         if font_id != -1:
             font_family = QFontDatabase.applicationFontFamilies(font_id)[0]
