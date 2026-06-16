@@ -474,6 +474,54 @@ class POSTGRESQL():
                 ''',(prisoner_id, relative_id)
             )
             return cur.fetchall()
+        
+    @log_db_exceptions
+    def get_all_counts_visit(self, prisoner_ids, today, today_month):
+        '''
+        ดึงค่าจำนวนการเยี่ยมวันนี้ และต่อเดือน โดยรับ prisoner_ids เป็น list คืนค่าเป็น dict'''
+        if not prisoner_ids:
+            return 
+        
+        # สร้าง Dictionary หลักสำหรับเก็บผลลัพธ์ตั้งต้นให้กับทุกคนเป็น (0, 0)
+        # โครงสร้างจะเป็น { "ID": [count_today, count_month] }
+        result_dict = {p_id:[0, 0] for p_id in prisoner_ids}
+
+        with self.conn.cursor() as cur:
+            # 1. ดึงข้อมูลจำนวนการเยี่ยมของ "วันนี้" ของทุกคนพร้อมกัน
+            # นำข้อมูลมา GROUP BY prisoner_id เพื่อแยกนับรายคน
+            cur.execute(
+                '''
+                    SELECT prisoner_id, COUNT(*)
+                    FROM visits
+                    WHERE prisoner_id IN %s AND date_visit = %s
+                    GROUP BY prisoner_id
+                ''',
+                (tuple(prisoner_ids), today)
+            )
+            # นำผลลัพธ์วันนี้ไปอัปเดตใน Dictionary (ตำแหน่งที่ 0)
+            for p_id, count in cur.fetchall():
+                if p_id in result_dict:
+                    result_dict[p_id][0] = count
+
+            # 2. ดึงข้อมูลจำนวนการเยี่ยมของ "ทั้งเดือน" ของทุกคนพร้อมกัน
+            cur.execute(
+                """
+                SELECT prisoner_id, COUNT(*) 
+                FROM visits 
+                WHERE prisoner_id IN %s AND LEFT(date_visit, 7) = %s
+                GROUP BY prisoner_id
+                """,
+                (tuple(prisoner_ids), today_month)
+            )
+            # นำผลลัพธ์ทั้งเดือนไปอัปเดตใน Dictionary (ตำแหน่งที่ 1)
+            for p_id, count in cur.fetchall():
+                if p_id in result_dict:
+                    result_dict[p_id][1] = count
+
+
+        # แปลง Value จาก list [count_today, count_month] ให้เป็น tuple (count_today, count_month) 
+        # เพื่อให้เหมือนกับสไตล์โค้ดเดิมของคุณเวลาดึงไปใช้งาน
+        return {p_id: tuple(counts) for p_id, counts in result_dict.items()}
 
     @log_db_exceptions
     def get_count_visit(self, prisoner_id, today, today_month):
@@ -485,10 +533,18 @@ class POSTGRESQL():
         count_month = cur.fetchone()[0]
         '''
         with self.conn.cursor() as cur:
-            cur.execute('SELECT COUNT(*) FROM visits WHERE prisoner_id = %s AND date_visit = %s',(prisoner_id,today))
+            cur.execute(
+                'SELECT COUNT(*) FROM visits WHERE prisoner_id = %s AND date_visit = %s',
+                (prisoner_id,today)
+            )
             count_today = cur.fetchone()[0]
-            cur.execute('SELECT COUNT(*) FROM visits WHERE prisoner_id = %s AND strftime("%Y-%m", date_visit) = %s',(prisoner_id,today_month))
+
+            cur.execute(
+                'SELECT COUNT(*) FROM visits WHERE prisoner_id = %s AND LEFT(date_visit, 7) = %s',
+                (prisoner_id,today_month)
+            )
             count_month = cur.fetchone()[0]
+            
             return count_today,count_month
 
     @log_db_exceptions

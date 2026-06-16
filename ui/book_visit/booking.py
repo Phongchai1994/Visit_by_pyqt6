@@ -60,6 +60,7 @@ class Booking(QDialog):
         self.booking_time_visit = None
         self.booking_relative = {}
         self.booking_channel = None
+        self.remaining_booking = None
 
         self.thai_day = None
         self.data_booking = []
@@ -119,7 +120,7 @@ class Booking(QDialog):
 
     def choose_a_booking_page(self):
         '''
-        หน้าเลือการจองเยี่ยม'''
+        หน้าเลือกการจองเยี่ยม'''
         # self._test_print_data(self.choose_a_booking_page.__name__)
         self.clear_layout(self.button_layout)
         self.clear_layout(self.booking_layout)
@@ -145,24 +146,24 @@ class Booking(QDialog):
         btn_close_window.clicked.connect(self.close)
 
     def prepare_booking_date(self, today:bool):
+        self.state_booking_today = today
         if today:
-            # self.booking_date_visit = date.today().isoformat()
-            self.booking_date_visit = "2026-06-15"
+            self.booking_date_visit = date.today().isoformat()
+            # self.booking_date_visit = "2026-06-15"
         else:
             self.booking_date_visit = self._next_non_holiday_date(date.today() + timedelta(days=1))
 
-        self.select_prisoner_booking(today)
+        self.select_prisoner_booking()
 
     def _next_non_holiday_date(self, current_date:date):
         while current_date.weekday() in (5, 6) or self.db.get_is_holiday(current_date.isoformat()):
             current_date += timedelta(days=1)
         return current_date.isoformat()
 
-    def select_prisoner_booking(self, state_booking_today=bool):
+    def select_prisoner_booking(self):
         '''
         หน้าเลือกผู้ต้องขัง'''
         # self._test_print_data(self.select_prisoner_booking.__name__)
-        self.state_booking_today = state_booking_today
         thai_date_full_str = self.get_thai_date(self.booking_date_visit)
 
         self.clear_layout(self.button_layout)
@@ -187,24 +188,49 @@ class Booking(QDialog):
         else:
             dt = datetime.now()
 
+        today = self.booking_date_visit
+        today_month = self.booking_date_visit[:7]
+        
         thai_days = ["จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์","อาทิตย์"]
         self.thai_day = thai_days[dt.weekday()]
         if self.allowed_dan_by_dan is None:
             AlertBox.error(self, title='ไฟล์ booking_allowed.json', message='ไม่สามารถโหลดไฟล์ booking_allowed.json ได้')
             return
         allower_dan = (self.allowed_dan_by_dan or {}).get(self.thai_day, [])
-        # print(today)
         # print(f'today = {allower_dan}')
+
+        prisoner_ids = [
+            data[0] for data in self.related_to_prisoners
+            if data[5] in allower_dan and data[6] == 'อยู่'
+        ]
+        # print(prisoner_ids)
+        # โครงสร้างตัวอย่าง: { data[0]: (count_today, count_month) }
+        visit_counts_dict = self.db.get_all_counts_visit(prisoner_ids, today=today, today_month=today_month)
+        # print(visit_counts_dict)
 
         for data in self.related_to_prisoners:
             # print(data)
             if data[5] in allower_dan and data[6] == 'อยู่':
-                dis = '' if data[7] is None else str(data[7])
-                p_type = 'กักขัง' if data[8] == 'ผู้ต้องกักขัง' else ''
-                label = f'{str(data[2])} {str(data[3])[:3]}... ชั้น:{str(data[4])}\nแดน:{str(data[5])} ความสัมพันธ์:{str(data[9])} {dis} {p_type}'
-                btn = QPushButton(label)
+                count_today, count_month = visit_counts_dict.get(data[0], (0,0))
+                # print(count_today, count_month)
+                result_count_level = self._check_level(data[4]) - int(count_month)
+                reason = []
                 if data[7] == 'ผิดวินัย':
+                    reason.append('ผิดวินัย')
+                if count_today >= 1:
+                    reason.append('จองเยี่ยมแล้ว')
+                if result_count_level <= 0:
+                    reason.append('เยี่ยมครบจำนวนครั้งแล้ว')
+                    
+                p_type = 'กักขัง' if data[8] == 'ผู้ต้องกักขัง' else ''
+                label = f'{str(data[2])} {str(data[3])[:3]}... ชั้น:{str(data[4])}\nแดน:{str(data[5])} ความสัมพันธ์:{str(data[9])} {p_type}'
+                
+                btn = QPushButton(label)
+                if reason:
                     btn.setDisabled(True)
+                    btn.setText(f'{label}\n({' '.join(reason)})')
+                    btn.setToolTip('ไม่สามารถจองเยี่ยมได้')
+
                 btn.clicked.connect(lambda checked=False, row=data: on_next(row))
                 self.prisoner_layout.addWidget(btn)
 
@@ -219,7 +245,7 @@ class Booking(QDialog):
                 'status': None,
                 'dis': None,
                 'type': None 
-            }
+                }
             if isinstance(prisoner_data, dict):
                 for k in normalized.keys():
                     # print(k)
@@ -247,8 +273,17 @@ class Booking(QDialog):
             if not normalized.get('prisoner_id'):
                 AlertBox.error(self, title='ข้อมูลผู้ต้องขัง', message='ID ผู้ต้องขังไม่ถูกต้อง')
                 return
-
+            
             self.booking_prisoner = normalized
+            
+            target_id = self.booking_prisoner['prisoner_id']
+            if target_id in visit_counts_dict:
+                _, count_month = visit_counts_dict[target_id]
+            else:
+                _, count_month = (0, 0)
+                print('ไม่พบข้อมูล')
+                
+            self.remaining_booking = self._check_level(self.booking_prisoner['level']) - count_month
             self.choose_a_round()
 
         btn_go_back = QPushButton('กลับ')
@@ -258,6 +293,24 @@ class Booking(QDialog):
 
         btn_go_back.clicked.connect(self.choose_a_booking_page)
         btn_close.clicked.connect(self.close)
+
+    def _check_level(self, level):
+        '''
+        เช็คชั้น และ return เป็นจำนวนการเยี่ยม'''
+        if level == 'เยี่ยม' :
+            return 8
+        elif level == 'ดีมาก' :
+            return 6
+        elif level == 'ดี' :
+            return 4
+        elif level == 'กลาง' or level == 'ระหว่างพิจารณาคดี' :
+            return 3
+        elif level == 'ปรับปรุง' :
+            return 2
+        elif level == 'ปรับปรุงมาก' :
+            return 1
+        else:
+            return None
 
     def choose_a_round(self):
         '''
@@ -294,7 +347,6 @@ class Booking(QDialog):
             btn.setProperty('time_start', time_start)
             btn.clicked.connect(lambda checked, ts=time_start: on_next(ts))
             if now_time > close_time and self.state_booking_today:
-                # print('now_time > close_time')
                 btn.setDisabled(True)
             self.round_group.addButton(btn)
             self.round_layout.addWidget(btn)
@@ -387,17 +439,22 @@ class Booking(QDialog):
                 cb.setChecked(False)
                 cb.blockSignals(False)
                 AlertBox.warning(self, title='จำกัดจำนวน' ,message='รวมตัวผู้จองแล้ว เลือกได้ไม่เกิน 5 ราย')
+        if len(follower) > 1:
+            for idx, val in enumerate(follower):
+                if str(val[0]) == str(self.relative_id):
+                    # print(val[0], self.relative_id)
+                    continue
+                display = f'{str(val[1])}{str(val[2])} {str(val[3])}\nความสัมพันธ์ : {str(val[4])}'
+                cb = QCheckBox(display)
+                cb.setProperty('follower', val)
+                cb.toggled.connect(lambda checked, box = cb: on_checkbox_toggled(checked, box))
+                self.followers_layout.addWidget(cb)
+                self.follower_checkboxes.append(cb)
+        else:
+            label = QLabel('ไม่มีผู้ติดตาม')
+            label.setStyleSheet('color: #FF0909;')
+            self.followers_layout.addWidget(label)
 
-        for idx, val in enumerate(follower):
-            if str(val) == str(self.relative_id):
-                print(val, self.relative_id)
-                continue
-            display = f'{str(val[1])}{str(val[2])} {str(val[3])}\nความสัมพันธ์ : {str(val[4])}'
-            cb = QCheckBox(display)
-            cb.setProperty('follower', val)
-            cb.toggled.connect(lambda checked, box = cb: on_checkbox_toggled(checked, box))
-            self.followers_layout.addWidget(cb)
-            self.follower_checkboxes.append(cb)
 
         btn_next = QPushButton('ถัดไป')
         btn_back = QPushButton('กลับ')
@@ -410,7 +467,7 @@ class Booking(QDialog):
                 'title': self.relative_data[1],
                 'f_name': self.relative_data[2],
                 'l_name': self.relative_data[3],
-                'is_booker': False,
+                'is_booker': True,
             }
             for cb in self.follower_checkboxes:
                 if cb.isChecked():
@@ -448,6 +505,8 @@ class Booking(QDialog):
         btn_close = QPushButton('ยกเลิก')
 
 
+
+
         self.button_layout.addWidget(btn_confirm)
         self.button_layout.addWidget(btn_back)
         self.button_layout.addWidget(btn_close)
@@ -467,6 +526,8 @@ class Booking(QDialog):
         print(f'self.booking_relative : {self.booking_relative}')
         print('--------------------------------------------')
         print(f'self.booking_channel : {self.booking_channel}')
+        print('--------------------------------------------')
+        print(f'self.remaining_booking : {self.remaining_booking}')
         print('--------------------------------------------')
         # query = '''
 
