@@ -521,6 +521,25 @@ class POSTGRESQL():
                 ''',(prisoner_id,)
             )
             return cur.fetchall()
+        
+    @log_db_exceptions
+    def get_channel_counts(self, date_visit:str, time_visit:str):
+        """
+        คืนค่า dict {channel: count} สำหรับวันที่และรอบเวลาที่ระบุ\n
+        ถ้าไม่มีค่าในช่องใด จะไม่รวมช่องนั้นในผลลัพธ์.
+        """
+        with self.conn.cursor() as cur:
+            cur.execute(
+                '''
+                    SELECT channel, COUNT(*) AS cnt
+                    FROM visits
+                    WHERE date_visit = %s AND time_visit = %s
+                    GROUP BY channel
+                    ORDER BY channel
+                ''',(date_visit, time_visit)
+            )
+            rows = cur.fetchall()
+            return {row[0]: row[1] for row in rows}
 # -----------------------------------------------
 #   Login
 # -----------------------------------------------

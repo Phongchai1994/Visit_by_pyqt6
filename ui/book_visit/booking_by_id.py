@@ -85,7 +85,6 @@ class Book_By_National_ID(QWidget):
 
 
     def verify_input_id(self, trigger):
-        self.btn_get_id.setDisabled(True)
         self.create_ui_relative_data()
         relative_id = None
         #  ตรวจสอบการกด button or enter
@@ -118,6 +117,7 @@ class Book_By_National_ID(QWidget):
         if not self.relative_data:
             AlertBox.error(self, 'Book_By_National_ID', 'ไม่พบข้อมูล' )
             return
+        self.btn_get_id.setDisabled(True)
         self.input_id.setReadOnly(True)
         for i, value in enumerate(prisoner_and_relation, 1):
             disciplinary_text = '-'
@@ -248,9 +248,9 @@ class Book_By_National_ID(QWidget):
     def handle_booking(self):
         print()
         from ui.book_visit.booking import Booking
-        relative_data = ['1560100345135', 'คำนำหน้า', 'ชื่อญาติ', 'สกุลญาติ']
+        # relative_data = ['1560100345135', 'คำนำหน้า', 'ชื่อญาติ', 'สกุลญาติ']
         booking = Booking(
-            relative_data=relative_data
+            relative_data=self.relative_data
         )
         booking.exec()
 

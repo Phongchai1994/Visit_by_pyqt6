@@ -800,6 +800,14 @@ QWidget#Book_By_Fingerprint #Book_By_Fingerprint_title_label{
     margin-bottom: 1px;
     margin-top: 10px;
 }
+
+/*############# class Booking(QDialog): ##############*/
+
+QWidget#Booking QRadioButton:disabled{
+    color: #9e9e9e;
+
+}
+
 /*########   class Dialy_Report ###########*/
 
 QWidget#Dialy_Report {
@@ -813,6 +821,7 @@ QWidget#Dialy_Report {
 }
 
 /*########   class Monthly_Report ###########*/
+
 
 QWidget#Monthly_Report {
     background: #fff;

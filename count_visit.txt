@@ -1,0 +1,549 @@
+User: #sym:choose_a_round ตรวจสอบให้หน่อย para: prisoner_data บางครั้งส่ง list มา หรือบางครั้งส่ง dict มา
+
+GitHub Copilot: กำลังตรวจดู `choose_a_round` ว่ารับ `prisoner_data` เป็น `list` หรือ `dict` แล้วแนะนำการแก้ไขให้ปลอดภัยและเป็นมาตรฐานขึ้น
+
+สรุปปัญหาและสถานะปัจจุบัน
+- โค้ดปัจจุบันรองรับทั้ง `list` และ `dict` ด้วย if/elif ที่มีอยู่ — ดังนั้นการรับทั้งสองรูปแบบทำงานได้โดยรวม.
+- ความเสี่ยงที่เหลือ: ถ้า `prisoner_data` ขาด key/ตำแหน่งที่คาดไว้ จะเกิด `KeyError` หรือ IndexError; โค้ดยังไม่ normalize ข้อมูลก่อนใช้งานต่อ (แต่ส่วนที่เรียก `choose_a_round` จากปุ่มใน `select_prisoner_booking` ใช้ `row=data` เป็น default-arg จึงหลีกเลี่ยงปัญหา closure).
+- ข้อเสนอ: normalize `prisoner_data` เป็น dict หนึ่งค่าทันทีที่เข้า `choose_a_round` และตรวจความสมบูรณ์ของข้อมูล — จะลดเงื่อนไขซ้ำและป้องกันข้อผิดพลาดจากรูปแบบข้อมูลต่างกัน
+
+แนะนำการแก้ไข (แทนบล็อกการตั้งค่า `self.booking_prisoner` ปัจจุบัน)
+- เปลี่ยนต้นของ `choose_a_round` ให้แปลงข้อมูลเป็น dict แบบปลอดภัย และตรวจคีย์/ตำแหน่งที่จำเป็น
+
+ตัวอย่างโค้ดที่แนะนำ (วางแทนส่วนการเช็คแบบ list/dict)
+def choose_a_round(self, prisoner_data):
+    """
+     เลือกรอบเยี่ยม และผู้ติดตาม
+    """
+    # Normalize incoming data to a dict with safe defaults
+    normalized = {
+        'prisoner_id': None,
+        'gender': None,
+        'f_name': None,
+        'l_name': None,
+        'level': None,
+        'dan': None,
+        'status': None,
+        'dis': None,
+        'type': None
+    }
+
+    if isinstance(prisoner_data, dict):
+        for k in normalized.keys():
+            if k in prisoner_data:
+                normalized[k] = prisoner_data[k]
+    elif isinstance(prisoner_data, (list, tuple)):
+        # map expected positions to keys, ignore missing indexes
+        mapping = ['prisoner_id','gender','f_name','l_name','level','dan','status','dis','type']
+        for i, key in enumerate(mapping):
+            if i < len(prisoner_data):
+                normalized[key] = prisoner_data[i]
+    else:
+        normalized = None
+
+    if not normalized or not normalized.get('prisoner_id'):
+        AlertBox.error(self, title='ข้อมูลผู้ต้องขัง', message='ข้อมูลผู้ต้องขังไม่ถูกต้อง')
+        return
+
+    self.booking_prisoner = normalized
+
+    # ... ส่วนที่เหลือของฟังก์ชันใช้ self.booking_prisoner ได้เลย
+
+เพิ่มเติมข้อแนะนำสั้น ๆ
+- หากเรียก `choose_a_round` จากหลายที่ ให้เปลี่ยนเรียกให้ส่ง dict เสมอ (ถ้าเป็นไปได้) — ทำให้อ่านง่ายขึ้น
+- ถ้ามี schema ชัดเจน ให้เพิ่ม validation เพิ่มเติม (เช่น ตรวจ `dan`/`type` ไม่เป็น None) ก่อนดำเนินการต่อ
+- ปรับ unit test คร่าวๆ สำหรับกรณี `list`, `dict`, และข้อมูลไม่สมบูรณ์
+
+ต้องการให้ผมสร้าง patch โค้ดตัวจริงในไฟล์ booking.py ให้เลยไหม?
+
+User: ขอตัวอย่าง
+
+GitHub Copilot: ต่อไปนี้เป็นตัวอย่างฟังก์ชัน `choose_a_round` ที่ทำ normalization ของ `prisoner_data` (รับทั้ง `list/tuple` หรือ `dict`) และตรวจความสมบูรณ์ก่อนใช้งาน — ให้แทนส่วนเดิมในไฟล์ booking.py
+
+def choose_a_round(self, prisoner_data):
+    """
+     เลือกรอบเยี่ยม และผู้ติดตาม
+    """
+    # Normalize incoming data to dict with safe defaults
+    normalized = {
+        'prisoner_id': None,
+        'gender': None,
+        'f_name': None,
+        'l_name': None,
+        'level': None,
+        'dan': None,
+        'status': None,
+        'dis': None,
+        'type': None
+    }
+
+    if isinstance(prisoner_data, dict):
+        for k in normalized.keys():
+            if k in prisoner_data:
+                normalized[k] = prisoner_data[k]
+    elif isinstance(prisoner_data, (list, tuple)):
+        mapping = ['prisoner_id','gender','f_name','l_name','level','dan','status','dis','type']
+        for i, key in enumerate(mapping):
+            if i < len(prisoner_data):
+                normalized[key] = prisoner_data[i]
+    else:
+        AlertBox.error(self, title='ข้อมูลผู้ต้องขัง', message='รูปแบบข้อมูลผู้ต้องขังไม่ถูกต้อง')
+        return
+
+    if not normalized.get('prisoner_id'):
+        AlertBox.error(self, title='ข้อมูลผู้ต้องขัง', message='ID ผู้ต้องขังไม่ถูกต้อง')
+        return
+
+    self.booking_prisoner = normalized
+    self._test_print_data(self.choose_a_round.__name__)
+
+    prisoner_dan = self.booking_prisoner.get('dan')
+    prisoner_type = self.booking_prisoner.get('type')
+
+    allowed = self._allowed_round_numbers(prisoner_dan, prisoner_type)
+    if allowed is None:
+        AlertBox.error(self, title='ตรวจสอบแดน', message=f'ไม่พบแดน :{prisoner_dan}')
+        return
+
+    # Clear & show round selection UI (เหมือนเดิม)
+    self.clear_layout(self.button_layout)
+    self.clear_layout(self.booking_layout)
+    self.clear_layout(self.prisoner_layout)
+    self.clear_layout(self.round_layout)
+    self.clear_layout(self.followers_layout)
+    self.clear_layout(self.recheck_layout)
+
+    self.a_prisoners_group.hide()
+    self.a_round_group.show()
+    self.a_followers_group.hide()
+
+    self.round_group = QButtonGroup(self)
+    self.round_group.setExclusive(True)
+    now_time = datetime.now().time()
+
+    for round_text, time_start, time_close in self._filter_rounds(self.boooking_round, allowed):
+        close_time = datetime.strptime(time_close, "%H:%M:%S").time()
+        btn = QPushButton(round_text)
+        btn.setCheckable(True)
+        btn.setProperty('time_start', time_start)
+        btn.clicked.connect(lambda checked, ts=time_start: self.choose_a_follower(ts))
+        if now_time > close_time and self.state_booking_today:
+            btn.setDisabled(True)
+        self.round_group.addButton(btn)
+        self.round_layout.addWidget(btn)
+
+    btn_back = QPushButton('กลับ')
+    btn_close = QPushButton('ยกเลิก')
+
+    self.button_layout.addWidget(btn_back)
+    self.button_layout.addWidget(btn_close)
+
+    btn_back.clicked.connect(self.select_prisoner_booking)
+    btn_close.clicked.connect(self.close)
+
+ต้องการให้ผมสร้าง patch แทนที่โค้ดเดิมใน booking.py ให้เลยไหม?
+
+User: ดึงค่าจาก cb เก็บไว้ใน self.booking_relative dict รวมตัวเองแล้วไม่เกิน 5 ราย
+
+GitHub Copilot: นี่ตัวอย่างโค้ดสั้น ๆ ให้ใส่ในเมธอด `choose_a_follower` ของไฟล์ booking.py — จะสร้าง checkbox รายชื่อผู้ติดตาม, เพิ่มปุ่ม `ถัดไป` เพื่อเก็บค่าที่เลือก (รวมตัวผู้จองเอง) และตรวจไม่ให้เกิน 5 คน แล้วเก็บลง `self.booking_relative` เป็น dict:
+
+- แทนที่ส่วนที่สร้าง checkbox/ปุ่มใน `choose_a_follower` ด้วยโค้ดนี้:
+
+    # สร้าง checkbox รายชื่อผู้ติดตาม
+    self.followers_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+    self.follower_checkboxes = []  # เก็บ QCheckBox objects
+    for idx, val in enumerate(follower):
+        # val: (relative_id, title, f_name, l_name, relation, ...)
+        display = f'{str(val[1])}{str(val[2])} {str(val[3])}\nความสัมพันธ์ : {str(val[4])}'
+        cb = QCheckBox(display)
+        cb.setProperty('follower', val)
+        self.followers_layout.addWidget(cb)
+        self.follower_checkboxes.append(cb)
+
+    # ปุ่มถัดไป / ย้อนกลับ / ยกเลิก
+    btn_next = QPushButton('ถัดไป')
+    btn_back = QPushButton('กลับ')
+    btn_close = QPushButton('ยกเลิก')
+
+    def on_next():
+        # รวมตัวผู้จอง (self.relative_id) กับผู้ติดตามที่เลือก
+        selected = []
+        # Add the booking relative themself (assume self.relative_id exists)
+        if self.relative_id:
+            selected.append({
+                'relative_id': self.relative_id,
+                'name': self.relative_fullname,
+                'is_booker': True
+            })
+        for cb in self.follower_checkboxes:
+            if cb.isChecked():
+                val = cb.property('follower')
+                selected.append({
+                    'relative_id': val[0],
+                    'title': val[1],
+                    'f_name': val[2],
+                    'l_name': val[3],
+                    'relation': val[4],
+                    'is_booker': False
+                })
+
+        # ตรวจไม่ให้เกิน 5 คน (รวมตัวผู้จอง)
+        if len(selected) > 5:
+            AlertBox.warning(self, 'จำกัดผู้ติดตาม', 'รวมผู้จองแล้ว ต้องไม่เกิน 5 คน')
+            return
+
+        # เก็บเป็น dict โดยใช้ relative_id เป็น key (หรือรูปแบบที่ต้องการ)
+        self.booking_relative = {item['relative_id']: item for item in selected}
+
+        # ต่อไป: ไปหน้าตรวจสอบหรือบันทึก
+        self._test_print_data('choose_a_follower -> collected followers')
+        # ตัวอย่างเรียกหน้าตรวจสอบ
+        self.a_followers_group.hide()
+        self.a_recheck_group.show()
+        # ... (เติม logic แสดงข้อมูลยืนยันที่ต้องการ)
+
+    btn_next.clicked.connect(on_next)
+    btn_back.clicked.connect(lambda: self.choose_a_round(prisoner_data=self.booking_prisoner))
+    btn_close.clicked.connect(self.close)
+
+    self.button_layout.addWidget(btn_back)
+    self.button_layout.addWidget(btn_next)
+    self.button_layout.addWidget(btn_close)
+
+ต้องการให้ผมเปิดไฟล์ booking.py แล้วแปะโค้ดนี้ให้เลยไหม?
+
+User: ดึงค่าจาก cb เก็บไว้ใน self.booking_relative รวมตัวเองแล้วไม่เกิน 5 ราย
+
+GitHub Copilot: กำลังปรับจุดเก็บค่าใน `choose_a_follower` ให้ดึงค่าจาก `QCheckBox`, ใส่ตัวเองเข้า `self.booking_relative`, และบังคับจำกัดรวมไม่เกิน 5 ราย โดยจะเช็กโครงสร้างข้อมูลเดิมก่อนแก้โค้ดเล็กน้อย.
+
+Searched for regex `def choose_a_follower|booking_relative|follower_checkboxes` (`**/ui/book_visit/booking.py`), 5 results
+
+Read [](file:///c%3A/Users/ADMINS/Visit_by_pyqt6/ui/book_visit/booking.py#180-180), lines 180 to 280
+
+เห็นจุดควบคุมแล้ว: ตอนนี้ `choose_a_follower` สร้าง checkbox แต่ยังไม่เก็บค่าจริง และยังไม่ผูกปุ่มถัดไปให้ทำ validation รวมตัวเองไม่เกิน 5 ราย. กำลังแก้เฉพาะเมธอดนี้ให้ตรงพฤติกรรมที่ต้องการ.
+
+Read [](file:///c%3A/Users/ADMINS/Visit_by_pyqt6/ui/book_visit/booking.py#355-355), lines 355 to 420
+
+จะอัปเดตเฉพาะ `choose_a_follower` และ `confirm_booking` ให้เก็บค่าจาก checkbox ลง `self.booking_relative` แบบ dict พร้อมเช็กจำนวนรวมตัวเองไม่เกิน 5 ราย จากนั้นจะตรวจ syntax เฉพาะไฟล์นี้ทันที.
+
+Analyzing your answers...
+
+คำตอบชัดแล้ว: จะเก็บเป็น dict โดยใช้ `relative_id` เป็น key และรวมรายการของตัวเองจาก `self.relative_data` เข้าไปด้วย. กำลังลงมือแก้โค้ดให้ครบทั้งเก็บค่าและจำกัดจำนวน.
+
+Read memory
+
+Created memory file [](file:///c%3A/Users/ADMINS/AppData/Roaming/Code/User/workspaceStorage/cc1eb830ccf2be4e83eb651dc50a5208/GitHub.copilot-chat/memory-tool/memories/repo/visit_by_pyqt6.md)
+
+เริ่มแก้ไฟล์จริงใน slice เล็กที่สุด: ผูกปุ่ม `ถัดไป`, สร้าง helper สำหรับเก็บข้อมูลที่เลือก, และเช็กจำนวนรวมไม่เกิน 5 ก่อนบันทึกลง `self.booking_relative`.
+
+Read [](file:///c%3A/Users/ADMINS/Visit_by_pyqt6/ui/book_visit/booking.py#1-1), lines 1 to 120
+
+Read [](file:///c%3A/Users/ADMINS/Visit_by_pyqt6/ui/book_visit/booking.py#355-355), lines 355 to 395
+
+กำลังเขียน patch ตรง `choose_a_follower` และ `confirm_booking` เท่านั้น โดยจะไม่แตะส่วนอื่นเพื่อคุมความเสี่ยงและให้ง่ายต่อการย้อนกลับถ้าต้องปรับรูปแบบข้อมูลอีก.
+
+Analyzing your answers...
+
+คำตอบสุดท้ายเข้ารูปแล้ว: จะเก็บตัวเองใน key `booker` และผู้ติดตามเป็น key ตาม `relative_id` พร้อมจำกัดรวมทั้งหมด 5 ราย.
+
+Analyzing your answers...
+
+จะใช้พฤติกรรมทับ key เดิมตาม `relative_id` และป้องกันจำนวนเกิน 5 โดยนับแบบไม่รวม key ซ้ำเกินจริง.
+
+Analyzing your answers...
+
+กำลังลง patch สุดท้ายให้ปุ่ม `ถัดไป` ปรากฏจริงและทำงานเก็บค่า ก่อนตรวจ syntax ของไฟล์ทันที.
+
+Read memory [](file:///c%3A/Users/ADMINS/AppData/Roaming/Code/User/workspaceStorage/cc1eb830ccf2be4e83eb651dc50a5208/GitHub.copilot-chat/memory-tool/memories/repo/visit_by_pyqt6.md)
+
+Updated memory file [](file:///c%3A/Users/ADMINS/AppData/Roaming/Code/User/workspaceStorage/cc1eb830ccf2be4e83eb651dc50a5208/GitHub.copilot-chat/memory-tool/memories/repo/visit_by_pyqt6.md)
+
+ใช้ patch เล็กสุดในการอัปเดตเมธอดที่เกี่ยวข้อง แล้วตามด้วยการตรวจ syntax เฉพาะไฟล์ เพื่อยืนยันว่าไม่มี error จากการผูกปุ่มและการประกอบ dict.
+
+Analyzing your answers...
+
+ยึดตามที่ต้องการ: จะบังคับไม่ให้เลือกเกิน 5 แบบทันทีเมื่อมีการติ๊ก checkbox แล้วให้ย้อนกลับสถานะเดิมอัตโนมัติ.
+
+Analyzing your answers...
+
+พร้อมแก้แล้ว โดยอิงโครงสร้าง `self.relative_data` ตำแหน่งเดิมเพื่อประกอบข้อมูล `booker` ให้ครบถ้วนใน dict เดียว.
+
+Analyzing your answers...
+
+เก็บเป็น dict ได้ตามนี้: `booker` จะเป็นตัวผู้จองเสมอ และผู้ติดตามที่ติ๊กจาก checkbox จะเก็บด้วย `relative_id` ของแต่ละคน โดยบังคับรวมทั้งหมดไม่เกิน 5 ราย ถ้าเกินให้ยกเลิกการติ๊กล่าสุดทันที
+
+ตัวอย่างที่ควรใส่ใน `choose_a_follower`:
+
+```python
+def choose_a_follower(self, time_start):
+    '''
+    หน้าเลือกผู้ติดตาม
+    '''
+    follower = self.db.get_relatives_follower_from_p_id(
+        prisoner_id=self.booking_prisoner['prisoner_id']
+    )
+
+    self.booking_time_visit = time_start
+    self._test_print_data(self.choose_a_follower.__name__)
+
+    self.clear_layout(self.followers_layout)
+    self.clear_layout(self.button_layout)
+    self.clear_layout(self.round_layout)
+    self.a_round_group.hide()
+    self.a_followers_group.show()
+
+    self.follower_checkboxes = []
+
+    def count_selected():
+        return sum(1 for cb in self.follower_checkboxes if cb.isChecked())
+
+    def on_checkbox_toggled(checked, cb):
+        if checked and count_selected() > 5:
+            cb.blockSignals(True)
+            cb.setChecked(False)
+            cb.blockSignals(False)
+            AlertBox.warning(self, title='จำกัดจำนวน', message='รวมตัวผู้จองแล้ว เลือกได้ไม่เกิน 5 ราย')
+
+    for val in follower:
+        display = f'{str(val[1])}{str(val[2])} {str(val[3])}\nความสัมพันธ์ : {str(val[4])}'
+        cb = QCheckBox(display)
+        cb.setProperty('follower', val)
+        cb.toggled.connect(lambda checked, box=cb: on_checkbox_toggled(checked, box))
+        self.followers_layout.addWidget(cb)
+        self.follower_checkboxes.append(cb)
+
+    btn_next = QPushButton('ถัดไป')
+    btn_back = QPushButton('กลับ')
+    btn_close = QPushButton('ยกเลิก')
+
+    def on_next():
+        selected = {
+            'booker': {
+                'relative_id': self.relative_id,
+                'title': self.relative_data[1],
+                'f_name': self.relative_data[2],
+                'l_name': self.relative_data[3],
+                'full_name': self.relative_fullname,
+                'is_booker': True,
+            }
+        }
+
+        for cb in self.follower_checkboxes:
+            if cb.isChecked():
+                val = cb.property('follower')
+                selected[val[0]] = {
+                    'relative_id': val[0],
+                    'title': val[1],
+                    'f_name': val[2],
+                    'l_name': val[3],
+                    'relation': val[4],
+                    'is_booker': False,
+                }
+
+        if len(selected) > 5:
+            AlertBox.warning(self, title='จำกัดจำนวน', message='รวมตัวผู้จองแล้ว เลือกได้ไม่เกิน 5 ราย')
+            return
+
+        self.booking_relative = selected
+        self._test_print_data(self.choose_a_follower.__name__)
+        print(self.booking_relative)
+
+    btn_next.clicked.connect(on_next)
+    btn_back.clicked.connect(lambda: self.choose_a_round(prisoner_data=self.booking_prisoner))
+    btn_close.clicked.connect(self.close)
+
+    self.button_layout.addWidget(btn_next)
+    self.button_layout.addWidget(btn_back)
+    self.button_layout.addWidget(btn_close)
+```
+
+จุดสำคัญคือในโค้ดเดิม `btn_next` ถูกสร้างแต่ยังไม่ได้ `addWidget` ลง layout ทำให้มองไม่เห็นปุ่ม ถ้ายังต้องการ ผมช่วยแปะเป็น patch ให้ทั้งเมธอดใน booking.py ได้เลย.
+
+User: ทำไมปุ่มไม่แสดง
+
+GitHub Copilot: สาเหตุที่เป็นไปได้และวิธีเช็ก/แก้เร็ว ๆ
+
+1) ตรวจว่า `a_button_group` ถูกซ่อนหรือไม่  
+- ตรวจสอบว่าที่อื่นเรียก `self.a_button_group.hide()` หรือไม่ หากถูกซ่อนปุ่มจะไม่เห็น — แก้โดยเรียก `self.a_button_group.show()` หลังเพิ่มปุ่ม
+
+2) ยืนยันว่าปุ่มถูกเพิ่มจริงใน layout  
+- ใส่ debug หลัง `addWidget`:
+  - `print("button count:", self.button_layout.count())`
+  - `for i in range(self.button_layout.count()): print(self.button_layout.itemAt(i).widget().text())`
+  ถ้าไม่เห็น `ถัดไป` แปลว่ายังไม่ได้เพิ่มหรือถูกลบต่อมา
+
+3) ปุ่มถูกสร้างแต่ถูกบล็อกสัญญาณ/ซ่อนหรือ disabled ไหม  
+- หลังสร้างลอง `btn_next.show()` และ `btn_next.setEnabled(True)` เพื่อบังคับให้แสดง
+
+4) ตรวจว่ามีการเรียก `clear_layout(self.button_layout)` อีกหลังจากเพิ่มปุ่มหรือไม่  
+- ถ้ามี โค้ดจะลบปุ่มทันที — ย้าย `clear_layout` ให้อยู่ก่อนจะเพิ่มปุ่ม
+
+5) ข้อเสนอให้แก้ไขทันที (เพิ่ม 2 บรรทัดหลัง `addWidget`):
+- หลัง `self.button_layout.addWidget(btn_next)` ให้เพิ่ม:
+  - `self.a_button_group.show()`
+  - `btn_next.show()`
+
+ถ้าต้องการผมสามารถแปะบรรทัด debug หรือ patch สั้น ๆ ให้ใน booking.py ให้เลย — อยากให้ผมแก้ไฟล์ไหม?
+
+User: นับช่องเยี่ยมจาก table visits  col channel
+
+
+GitHub Copilot: ให้ตัวอย่างฟังก์ชันใน `db.py` เพื่อดึงสถิติการใช้ช่องจากตาราง `visits` (นับจำนวนแถวตาม `channel`) — สามารถเรียกใช้เพื่อหาว่าช่องไหนถูกใช้กี่ครั้งบนวันที่/รอบเวลาที่กำหนด:
+
+SQL (เพื่อทดสอบใน DB client):
+SELECT channel, COUNT(*) AS cnt
+FROM visits
+WHERE date_visit = %s AND time_visit = %s
+GROUP BY channel
+ORDER BY channel;
+
+Python method ให้วางในคลาส `POSTGRESQL` (ตามสไตล์ไฟล์):
+@log_db_exceptions
+def get_channel_counts(self, date_visit: str, time_visit: str):
+    """
+    คืนค่า dict: {channel: count} สำหรับ date_visit และ time_visit ที่ระบุ
+    """
+    with self.conn.cursor() as cur:
+        cur.execute(
+            '''
+            SELECT channel, COUNT(*) AS cnt
+            FROM visits
+            WHERE date_visit = %s AND time_visit = %s
+            GROUP BY channel
+            ''',
+            (date_visit, time_visit)
+        )
+        rows = cur.fetchall()
+        return {row[0]: row[1] for row in rows}
+
+ตัวอย่างการใช้งานจากโค้ด UI:
+used = db.get_channel_counts(self.booking_date_visit, self.booking_time_visit)
+# used คือ dict เช่น {1: 2, 3:1} — จำนวนผู้จองในแต่ละช่อง
+
+ถ้าต้องการแค่รายการช่องที่ถูกใช้ (list ของ int):
+used_channels = sorted(used.keys())
+
+ต้องการให้ผมสร้างเมธอดนี้ลงใน db.py ให้เลยไหม?
+
+User: มีเงื่อนไข date_visit , time_visit
+
+GitHub Copilot: เพิ่มเมธอดนี้ในคลาส `POSTGRESQL` ของไฟล์ db.py — นับจำนวนการใช้แต่ละ `channel` โดยมีเงื่อนไข `date_visit` และ `time_visit`:
+
+@log_db_exceptions
+def get_channel_counts(self, date_visit: str, time_visit: str):
+    """
+    คืนค่า dict {channel: count} สำหรับวันที่และรอบเวลาที่ระบุ.
+    ถ้าไม่มีค่าในช่องใด จะไม่รวมช่องนั้นในผลลัพธ์.
+    """
+    with self.conn.cursor() as cur:
+        cur.execute(
+            '''
+            SELECT channel, COUNT(*) AS cnt
+            FROM visits
+            WHERE date_visit = %s AND time_visit = %s
+            GROUP BY channel
+            ORDER BY channel
+            ''',
+            (date_visit, time_visit)
+        )
+        rows = cur.fetchall()
+        return {row[0]: row[1] for row in rows}
+
+ตัวอย่างการเรียกใช้งานจาก UI:
+used = db.get_channel_counts(self.booking_date_visit, self.booking_time_visit)
+# used เป็น dict เช่น {1: 2, 3: 1}
+used_channels = sorted(used.keys())  # รายการช่องที่ถูกใช้
+
+ต้องการให้ผมแปะเมธอดนี้ลงใน db.py ให้เลยหรือให้คำแนะนำเพิ่มเติมเรื่องการใช้ผลลัพธ์?
+
+User: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+ช่องทั้งหมดจะมี 14 ช่อง ถ้ามีการย้ายช่อง จะ มีวิธีตรวจสอบยังไง เพื่อให้การจองรอบใหม่ให้ได้ช่องที่หายไป
+
+GitHub Copilot: สรุปแนวทางสั้น ๆ แล้วให้ตัวอย่างโค้ด — วิธีหา “ช่องว่าง” ที่ว่างอยู่ (1..14) และคืนช่องแรกที่ว่าง หรือถ้าต้องการเติมช่องที่หายไปจากการย้าย/ยกเลิก ให้เลือกช่องที่น้อยที่สุด (gap) เพื่อให้ช่องเต็มชิดกัน
+
+หลักการ
+- ดึงรายการช่องที่ถูกใช้สำหรับวันที่+รอบเวลานั้นจากตาราง `visits` (col `channel`)  
+- คิดเป็น set แล้วหาเลขช่องตัวแรกในช่วง 1..MAX_CHANNEL ที่ไม่อยู่ใน set → นั่นคือช่องที่ว่าง (หรือช่อง “หายไป” ถ้าต้องการเติม gap)  
+- เพื่อป้องกัน race condition ระหว่างผู้ใช้หลายคน ให้ใช้ transaction + row/table lock หรือ สำรองด้วยการ INSERT แบบเช็ค constraint (หรือ SELECT ... FOR UPDATE) ก่อน commit
+
+SQL เตรียมดึงช่องที่ถูกใช้
+SELECT DISTINCT channel
+FROM visits
+WHERE date_visit = %s AND time_visit = %s AND channel IS NOT NULL;
+
+เบื้องต้น Python (วางใน `POSTGRESQL` หรือเรียกจาก UI) — คืนค่า first available channel หรือ None
+def find_first_available_channel(used_channels, max_channel=14):
+    used = set(int(c) for c in used_channels if c is not None)
+    for ch in range(1, max_channel + 1):
+        if ch not in used:
+            return ch
+    return None
+
+# ใช้กับผลจาก DB
+used = db.get_channel_counts(date_visit, time_visit)  # หรือ get_channel ที่คืน list
+used_channels = sorted(used.keys())  # e.g. [1,3,4]
+avail = find_first_available_channel(used_channels, max_channel=14)
+
+ถ้าต้องการ "เติมช่องที่หายไป" (เลือกช่อง gap เล็กสุด) — ฟังก์ชันเดียวกันจะคืนช่องเล็กสุดที่ขาด (1..max)
+
+การทำงานแบบปลอดภัย (transactional) — ไอเดีย
+- เริ่ม transaction
+- SELECT channel FROM visits WHERE date_visit=%s AND time_visit=%s FOR UPDATE
+  (ล็อกแถวที่เกี่ยวข้องก่อนอ่าน)
+- คำนวณช่องว่าง → เลือกช่องที่ต้องการ
+- INSERT ใหม่ (หรือ UPDATE row เดิม) กับช่องที่เลือก
+- Commit
+
+ตัวอย่างโค้ดแบบรวม (psycopg2) — ใส่ในคลาส DB:
+@log_db_exceptions
+def reserve_first_available_channel(self, date_visit, time_visit, prisoner_id, relative_ids, max_channel=14):
+    """
+    หาช่องว่างตัวแรกและบันทึกเป็น visit ใหม่ (transactional).
+    `relative_ids` เป็น list ที่อาจมี 1..5 ids.
+    คืนค่า channel ถ้าสำเร็จ หรือ None ถ้าเต็ม
+    """
+    with self.conn.cursor() as cur:
+        # lock relevant rows to avoid race
+        cur.execute(
+            """
+            SELECT channel FROM visits
+            WHERE date_visit = %s AND time_visit = %s
+            FOR UPDATE
+            """,
+            (date_visit, time_visit)
+        )
+        rows = cur.fetchall()
+        used = {r[0] for r in rows if r[0] is not None}
+        # find first free
+        channel = None
+        for ch in range(1, max_channel + 1):
+            if ch not in used:
+                channel = ch
+                break
+        if channel is None:
+            return None
+        # prepare relative columns (up to 5)
+        rel_cols = ['relative_id_1','relative_id_2','relative_id_3','relative_id_4','relative_id_5']
+        vals = [None]*5
+        for i, rid in enumerate(relative_ids[:5]):
+            vals[i] = rid
+        cur.execute(
+            f"""
+            INSERT INTO visits (date_visit, time_visit, prisoner_id, {', '.join(rel_cols)}, channel)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """,
+            (date_visit, time_visit, prisoner_id, vals[0], vals[1], vals[2], vals[3], vals[4], channel)
+        )
+        return channel
+
+ข้อควรระวังและปรับปรุงเพิ่มเติม
+- ถ้าแอพมี concurrent สูง ให้ออกแบบ locking ให้ชัด (row-level locks หรือ advisory locks) และพิจารณา unique partial index เพื่อป้องกัน double-book:
+  CREATE UNIQUE INDEX uniq_visit_channel ON visits (date_visit, time_visit, channel);
+  แล้วใช้ INSERT และจับ UniqueViolation เพื่อ retry หาช่องถัดไป
+- ถ้ต้องการ "เติมช่องให้ชิด" หลังการย้าย: เมื่อย้ายบันทึก ให้ UPDATE ช่องเก่าเป็น NULL แล้วระบบใหม่เรียกหา gap จะพบช่องว่างและเติมได้
+- ถ้าต้องการ prioritization (เช่น อยากใช้ช่องต่ำสุด/สูงสุด หรือเฉพาะช่องบางกลุ่ม) ปรับลูปค้นหา accordingly
+- ตรวจความสมบูรณ์ของ `relative_ids` ก่อน INSERT (max 5)
+
+ต้องการให้ผม:
+- แปะ method ตัวอย่าง `get_channel_counts` + `reserve_first_available_channel` ลงใน db.py ให้เลยไหม?  
+- หรือสร้าง unique index / migration SQL ตัวอย่างให้ด้วย?
