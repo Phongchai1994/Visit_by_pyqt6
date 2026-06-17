@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QLabel, QFrame, QGroupBox, QPushButton,
-    QRadioButton, QButtonGroup, QCheckBox, QMessageBox, QHBoxLayout
+    QRadioButton, QButtonGroup, QCheckBox, QMessageBox, QHBoxLayout,
+    QFormLayout
 )
 from PyQt6.QtCore import Qt,QTimer
 from datetime import datetime, timedelta, date
@@ -67,7 +68,7 @@ class Booking(QDialog):
         self.follower_vars = []
         self.count_reserve = 0
         self.current_channel = None
-        self.boooking_round = [
+        self.booking_round = [
             ("รอบที่ 1 เวลา 09.30 - 09.45", "09:30:00", "09:15:00"),
             ("รอบที่ 2 เวลา 10.00 - 10.15", "10:00:00", "09:45:00"),
             ("รอบที่ 3 เวลา 10.30 - 10.45", "10:30:00", "10:15:00"),
@@ -89,6 +90,8 @@ class Booking(QDialog):
         self.a_followers_group = QGroupBox('เลือกผู้ติดตาม')
         self.a_recheck_group = QGroupBox('ตรวจสอบข้อมูล')
         self.a_button_group = QGroupBox('ปุ่มดำเนินการ')
+        self.a_timer_group = QGroupBox()
+
 
         self.booking_layout = QVBoxLayout(self.a_choose_booking_group)
         self.button_layout = QVBoxLayout(self.a_button_group)
@@ -112,15 +115,45 @@ class Booking(QDialog):
         self.main_layout.addWidget(self.a_followers_group)
         self.main_layout.addWidget(self.a_recheck_group)
         self.main_layout.addStretch(1)
+
+        self.countdown_seconds = 25
+        self.countdown_label = QLabel(f"หน้าต่างนี้จะปิดอัตโนมัติใน {self.countdown_seconds} วินาที")
+        self.countdown_label.setStyleSheet("color: #FF4400; font-size: 16px; margin-bottom: 5px;")
+
+        self.timer_layout = QVBoxLayout(self.a_timer_group)
+        self.timer_layout.addWidget(self.countdown_label)
+
         self.main_layout.addWidget(self.a_button_group, stretch=0, alignment=Qt.AlignmentFlag.AlignBottom)
+        self.main_layout.addWidget(self.a_timer_group, stretch=0, alignment=Qt.AlignmentFlag.AlignCenter)
+        
+        self.countdown_timer = QTimer(self)
+        self.countdown_timer.timeout.connect(self.update_countdown)
+        self.countdown_timer.start(1000)
+        
+        
         self.choose_a_booking_page()
         
         # self._build_ui()
         # self.start_flow()
 
+    def update_countdown(self):
+        '''ฟังก์ชันนับเวลาถอยหลัง'''
+        self.countdown_seconds -= 1
+        if self.countdown_seconds > 0:
+            self.countdown_label.setText(f"หน้าต่างนี้จะปิดอัตโนมัติใน {self.countdown_seconds} วินาที")
+        else:
+            self.countdown_timer.stop()
+            self.close()
+
+    def reset_countdown(self):
+        '''รีเซ็ตเวลากลับไปเป็น 25 วินาที'''
+        self.countdown_seconds = 25
+        self.countdown_label.setText(f'หน้าต่างนี้จะปิดอัตโนมัติใน {self.countdown_seconds} วินาที')
+
     def choose_a_booking_page(self):
         '''
         หน้าเลือกการจองเยี่ยม'''
+        self.reset_countdown()
         # self._test_print_data(self.choose_a_booking_page.__name__)
         self.clear_layout(self.button_layout)
         self.clear_layout(self.booking_layout)
@@ -149,7 +182,7 @@ class Booking(QDialog):
         self.state_booking_today = today
         if today:
             self.booking_date_visit = date.today().isoformat()
-            # self.booking_date_visit = "2026-06-15"
+            # self.booking_date_visit = "2026-05-05"
         else:
             self.booking_date_visit = self._next_non_holiday_date(date.today() + timedelta(days=1))
 
@@ -163,6 +196,8 @@ class Booking(QDialog):
     def select_prisoner_booking(self):
         '''
         หน้าเลือกผู้ต้องขัง'''
+        self.reset_countdown()
+
         # self._test_print_data(self.select_prisoner_booking.__name__)
         thai_date_full_str = self.get_thai_date(self.booking_date_visit)
 
@@ -283,7 +318,7 @@ class Booking(QDialog):
                 _, count_month = (0, 0)
                 print('ไม่พบข้อมูล')
                 
-            self.remaining_booking = self._check_level(self.booking_prisoner['level']) - count_month
+            self.remaining_booking = self._check_level(self.booking_prisoner['level']) - count_month - 1
             self.choose_a_round()
 
         btn_go_back = QPushButton('กลับ')
@@ -315,6 +350,7 @@ class Booking(QDialog):
     def choose_a_round(self):
         '''
          เลือกรอบเยี่ยม'''
+        self.reset_countdown()
         # Normalize incoming data to dict with safe defaults
         
         prisoner_dan = self.booking_prisoner['dan']
@@ -340,21 +376,40 @@ class Booking(QDialog):
         self.round_group.setExclusive(True)
         now_time = datetime.now().time()
 
-        for round_text, time_start, time_close in self._filter_rounds(self.boooking_round, allowed):
+        availabel_slots_dict = self.db.get_all_available_slots_by_date(self.booking_date_visit, self.booking_round)
+
+        for round_text, time_start, time_close in self._filter_rounds(self.booking_round, allowed):
             close_time = datetime.strptime(time_close, "%H:%M:%S").time()
-            btn = QPushButton(round_text)
+
+            # ดึงเลขช่องที่ว่างจาก dict โดยใช้ time_start เป็น Key
+            free_slot = availabel_slots_dict.get(time_start)
+            is_full = (free_slot is None) # ถ้าคืนค่าเป็น None แสดงว่าเต็ม 14 ช่องแล้ว
+
+            display_text = round_text
+            if is_full:
+                display_text = f'{round_text}\n(รอบเต็ม)'
+
+            btn = QPushButton(display_text)
             btn.setCheckable(True)
             btn.setProperty('time_start', time_start)
-            btn.clicked.connect(lambda checked, ts=time_start: on_next(ts))
-            if now_time > close_time and self.state_booking_today:
+
+            # ส่งค่า free_slot ไปรอกับเหตุการณ์การกดคลิกปุ่มเลย เพื่อจะได้ไม่ต้อง query ซ้ำอีกรอบ
+            btn.clicked.connect(lambda checked, ts=time_start, fs=free_slot: on_next(ts, fs))
+
+            if is_full:
                 btn.setDisabled(True)
+                # btn.setStyleSheet("color: #FF0000; font-weight: bold;") # ทำสีแดงตัวหนาเพื่อให้เห็นชัดเจนว่ารอบเต็ม
+            elif now_time > close_time and self.state_booking_today:
+                btn.setDisabled(True)
+                btn.setText(f"{round_text}\n(หมดเวลาจอง)")
+
             self.round_group.addButton(btn)
             self.round_layout.addWidget(btn)
 
-        def on_next(ts):
+        def on_next(ts, fs):
             self.booking_time_visit = ts
+            self.booking_channel = fs
             self.choose_a_follower()
-
 
         btn_back = QPushButton('กลับ')
         btn_close = QPushButton('ยกเลิก')
@@ -416,6 +471,7 @@ class Booking(QDialog):
     def choose_a_follower(self):
         '''
         หน้าเลือกผู้ติดตาม'''
+        self.reset_countdown()
         follower = self.db.get_relatives_follower_from_p_id(
             prisoner_id=self.booking_prisoner['prisoner_id']
         )
@@ -494,18 +550,65 @@ class Booking(QDialog):
         self.button_layout.addWidget(btn_close)
 
     def confirm_booking(self):
+        '''หน้าตรวจสอบข้อมูล'''
+        self.reset_countdown()
         self.a_followers_group.hide()
         self.a_recheck_group.show()
         
         self.clear_layout(self.followers_layout)
         self.clear_layout(self.button_layout)
+        self.clear_layout(self.recheck_layout)
+
+        form_booking = QFormLayout()
+        form_booking.setSpacing(12)
+        form_booking.setLabelAlignment(Qt.AlignmentFlag.AlignRight)
+
+        # ข้อมูลวันที่
+        thai_date_booking = self.get_thai_date(self.booking_date_visit) if self.booking_date_visit else '-'
+
+        # ข้อมูลเวลาเยี่ยม
+        time_booking = f'{self.booking_time_visit} น.' if self.booking_time_visit else "-"
+
+        # ข้อมูลผู้ต้องขัง
+        prisoner_name = f'{self.booking_prisoner['f_name']} {self.booking_prisoner['f_name'][:3]}...\nชั้น : {self.booking_prisoner['level']}\nแดน : {self.booking_prisoner['dan']}'
+
+        # ข้อมูลญาติ
+        relative_name = []
+        if self.booking_relative:
+            for id, val in self.booking_relative.items():
+                    suffix = ' (ผู้จอง)' if val.get('is_booker') else (' (ผู้ติดตาม)')
+                    relative_name.append(f'{val['title']}{val['f_name']} {val['l_name']}{suffix}')
+
+        relative_display = "\n".join(relative_name) if relative_name else '-'
+
+        # ช่องเยี่ยม
+        channel_dispaly = self.booking_channel
+
+        # สิทธิ์เยี่ยมคงเหลือ
+        remaining_display = f'{self.remaining_booking} ครั้ง' if self.remaining_booking is not None else "-"
+
+        # สไตล์สำหรับข้อมูล (Value) ให้ตัวหนาขึ้นเห็นชัดเจน
+        style_val = "font-weight: bold; color: #111111; font-size: 15px;"
+        style_channel = "font-weight: bold; color: #008800; font-size: 16px;" # ไฮไลต์ช่องเยี่ยมเป็นสีเขียว
+
+        def create_val_label(text, style=style_val):
+            lbl = QLabel(text)
+            lbl.setStyleSheet(style)
+            return lbl
+        
+        form_booking.addRow(QLabel("วันที่เยี่ยม :"), create_val_label(thai_date_booking))
+        form_booking.addRow(QLabel("รอบเวลา :"), create_val_label(time_booking))
+        form_booking.addRow(QLabel("ผู้ต้องขัง :"), create_val_label(prisoner_name))
+        form_booking.addRow(QLabel("ช่องเยี่ยมที่ได้ :"), create_val_label(str(channel_dispaly), style_channel))
+        form_booking.addRow(QLabel("สิทธิ์คงเหลือเดือนนี้ :"), create_val_label(remaining_display))
+        form_booking.addRow(QLabel("รายชื่อญาติ :"), create_val_label(relative_display))
+
+        # 4. นำ form_booking ใส่เข้าไปในพื้นที่แสดงผลหน้าตรวจสอบข้อมูล (recheck_layout)
+        self.recheck_layout.addLayout(form_booking)
 
         btn_confirm = QPushButton('ยืนยันข้อมูล')
         btn_back = QPushButton('กลับ')
         btn_close = QPushButton('ยกเลิก')
-
-
-
 
         self.button_layout.addWidget(btn_confirm)
         self.button_layout.addWidget(btn_back)
@@ -552,239 +655,6 @@ class Booking(QDialog):
                 return json.load(f)
         except Exception as e:
             raise RuntimeError(f"โหลด config ล้มเหลว: {path}") from e
-
-
-
-    # def _test_print_data(self, function_name):
-    #     return
-        # print('------------------------------------------')
-        # print(f'ชื่อฟังก์ชัน :{function_name}')
-        # print(f'วันที่จอง :{self.booking_date_visit}')
-        # print(f'ชื่อผู้ต้องขัง :{self.booking_prisoner}')
-        # print(f'เวลาจอง :{self.booking_time_visit}')
-        # print(f'ชื่อญาติ :{self.booking_relative}')
-        # print(f'ชื่อช่อง :{self.booking_channel}')
-        # print('------------------------------------------')
-
-
-    # def _build_ui(self):
-    #     layout = QVBoxLayout(self)
-    #     layout.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
-
-    #     title = QLabel("จองเยี่ยม")
-    #     layout.addWidget(title)
-
-    #     line = QFrame()
-    #     line.setFrameShape(QFrame.Shape.HLine)
-    #     layout.addWidget(line)
-
-    #     self.page_round = QGroupBox("เลือกรอบเยี่ยม")
-    #     self.page_follower = QGroupBox("เลือกผู้ติดตาม")
-    #     self.page_confirm = QGroupBox("ยืนยันข้อมูล")
-
-    #     layout.addWidget(self.page_round)
-    #     layout.addWidget(self.page_follower)
-    #     layout.addWidget(self.page_confirm)
-
-    #     self._build_round_page()
-    #     self._build_follower_page()
-    #     self._build_confirm_page()
-
-    #     self.page_follower.hide()
-    #     self.page_confirm.hide()
-
-    # def _build_round_page(self):
-    #     layout = QVBoxLayout(self.page_round)
-    #     self.round_group = QButtonGroup(self)
-    #     self.round_group.setExclusive(True)
-
-    #     self.round_hint = QLabel("")
-    #     self.round_hint.setWordWrap(True)
-    #     layout.addWidget(self.round_hint)
-
-    #     for text, time_value, close_time in self._available_rounds_for_now():
-    #         btn = QRadioButton(text)
-    #         btn.setProperty("round_time", time_value)
-    #         btn.setProperty("close_time", close_time)
-    #         self.round_group.addButton(btn)
-    #         layout.addWidget(btn)
-
-    #     btn_next = QPushButton("ถัดไป")
-    #     btn_next.clicked.connect(self.select_follower)
-    #     layout.addWidget(btn_next)
-
-    # def _build_follower_page(self):
-    #     layout = QVBoxLayout(self.page_follower)
-    #     self.follower_hint = QLabel("")
-    #     self.follower_hint.setWordWrap(True)
-    #     layout.addWidget(self.follower_hint)
-
-    #     self.follower_box = QGroupBox("รายชื่อผู้ติดตาม")
-    #     follower_layout = QVBoxLayout(self.follower_box)
-    #     self.follower_vars = []
-
-    #     followers = self.db.get_join_prisoners_and_relatives_not_follower(self.prisoner_id, self.relative_id)
-    #     if followers:
-    #         for row in followers:
-    #             cb = QCheckBox(f"{row[1]}{row[2]} {row[3]}")
-    #             cb.setProperty("relative_id", row[0])
-    #             self.follower_vars.append((row[0], cb))
-    #             follower_layout.addWidget(cb)
-    #     else:
-    #         follower_layout.addWidget(QLabel("ไม่พบผู้ติดตาม"))
-
-    #     layout.addWidget(self.follower_box)
-
-    #     btn_back = QPushButton("ย้อนกลับ")
-    #     btn_back.clicked.connect(self.select_round)
-    #     btn_next = QPushButton("ถัดไป")
-    #     btn_next.clicked.connect(self.confirm_visit)
-
-    #     layout.addWidget(btn_back)
-    #     layout.addWidget(btn_next)
-
-    # def _build_confirm_page(self):
-    #     layout = QVBoxLayout(self.page_confirm)
-    #     self.confirm_hint = QLabel("")
-    #     self.confirm_hint.setWordWrap(True)
-    #     layout.addWidget(self.confirm_hint)
-
-    #     self.confirm_detail = QLabel("")
-    #     self.confirm_detail.setWordWrap(True)
-    #     layout.addWidget(self.confirm_detail)
-
-    #     btn_back = QPushButton("ย้อนกลับ")
-    #     btn_back.clicked.connect(self.select_follower)
-
-    #     btn_save = QPushButton("ยืนยันการจองเยี่ยม")
-    #     btn_save.clicked.connect(self.save_to_db)
-
-    #     btn_cancel = QPushButton("ยกเลิก")
-    #     btn_cancel.clicked.connect(self.reject)
-
-    #     layout.addWidget(btn_back)
-    #     layout.addWidget(btn_save)
-    #     layout.addWidget(btn_cancel)
-
-    # def start_flow(self):
-    #     if not self.check_disciplinary():
-    #         return
-    #     if not self.check_visit():
-    #         return
-    #     self.select_round()
-
-    # def check_disciplinary(self):
-    #     data_dis = self.db.get_data_check_disciplinary(self.prisoner_id)
-    #     if data_dis and data_dis == "ผิดวินัย":
-    #         AlertBox.error(self, "จองเยี่ยม", "ผู้ต้องขังรายนี้ผิดวินัย ไม่สามารถจองเยี่ยมได้")
-    #         return False
-    #     return True
-
-    # def check_visit(self):
-    #     check_visit = self.db.get_count_visit(self.prisoner_id, self.today, self.today_month)
-    #     self.count_reserve = check_visit[1] if check_visit else 0
-    #     return True
-
-    # def _available_rounds_for_now(self):
-    #     now = datetime.now().time()
-    #     available = []
-    #     for text, start, close in self.morning_rounds + self.afternoon_rounds:
-    #         if now < datetime.strptime(close, "%H:%M:%S").time():
-    #             available.append((text, start, close))
-    #     return available
-
-    # def select_round(self):
-    #     self.page_follower.hide()
-    #     self.page_confirm.hide()
-    #     self.page_round.show()
-    #     self.round_hint.setText(
-    #         f"ผู้ต้องขัง: {self.prisoner_name} {self.prisoner_surname}\n"
-    #         f"ญาติผู้จอง: {self.relative_fullname}\n"
-    #         f"วันที่เยี่ยม: {self.get_thai_date(self.today)}"
-    #     )
-
-    # def select_follower(self):
-    #     selected = self.round_group.checkedButton()
-    #     if not selected:
-    #         AlertBox.warning(self, "จองเยี่ยม", "กรุณาเลือกรอบเยี่ยม")
-    #         return
-
-    #     self.data_reserve[self.IDX_ROUND] = selected.property("round_time")
-    #     self.data_reserve[self.IDX_DATE] = self.today
-
-    #     self.page_round.hide()
-    #     self.page_confirm.hide()
-    #     self.page_follower.show()
-
-    #     self.follower_hint.setText(
-    #         f"รอบที่เลือก: {selected.text()}\n"
-    #         f"วันที่: {self.get_thai_date(self.today)}"
-    #     )
-
-    # def confirm_visit(self):
-    #     selected_ids = [rid for rid, cb in self.follower_vars if cb.isChecked()]
-    #     if len(selected_ids) > 4:
-    #         AlertBox.warning(self, "จองเยี่ยม", "เลือกผู้ติดตามได้สูงสุด 4 คน")
-    #         return
-
-    #     self.data_reserve[self.IDX_FOLLOWERS] = selected_ids
-    #     self.current_channel = self._find_first_available_channel()
-    #     self.data_reserve[self.IDX_CHANNEL] = self.current_channel
-
-    #     self.page_round.hide()
-    #     self.page_follower.hide()
-    #     self.page_confirm.show()
-
-    #     self.confirm_hint.setText(
-    #         f"ชื่อผู้ต้องขัง: {self.prisoner_name} {self.prisoner_surname}\n"
-    #         f"วันที่: {self.get_thai_date(self.today)}\n"
-    #         f"เวลา: {self.data_reserve[self.IDX_ROUND]}\n"
-    #         f"ช่องเยี่ยม: {self.current_channel}\n"
-    #         f"ญาติผู้จอง: {self.relative_fullname}"
-    #     )
-    #     self.confirm_detail.setText("ผู้ติดตาม:\n" + "\n".join(f"- {rid}" for rid in selected_ids) if selected_ids else "ผู้ติดตาม:\n-")
-
-    # def _find_first_available_channel(self, max_channel=14):
-    #     used_channels = sorted(self.db.get_channel(self.today, self.data_reserve[self.IDX_ROUND]) or [])
-    #     for channel in range(1, max_channel + 1):
-    #         if channel not in used_channels:
-    #             return channel
-    #     return None
-
-    # def save_to_db(self):
-    #     ok = self.insert_reserve_visit_to_db(
-    #         [
-    #             self.today,
-    #             self.data_reserve[self.IDX_ROUND],
-    #             self.prisoner_id,
-    #             self.relative_id,
-    #             *self.data_reserve[self.IDX_FOLLOWERS]
-    #         ],
-    #         self.current_channel
-    #     )
-    #     if ok:
-    #         AlertBox.info(self, "จองเยี่ยม", "จองเยี่ยมสำเร็จ")
-    #         if self.on_success:
-    #             self.on_success()
-    #         self.accept()
-    #     else:
-    #         AlertBox.error(self, "จองเยี่ยม", "บันทึกไม่สำเร็จ")
-
-    # def insert_reserve_visit_to_db(self, prepare_data, channel):
-    #     print('self.insert_reserve_visit_to_db')
-    #     # if channel is None:
-    #     #     return False
-    #     # try:
-    #     #     return self.db.insert_visit_by_national_id(
-    #     #         visit_date=prepare_data[0],
-    #     #         time_visit=prepare_data[1],
-    #     #         prisoner_id=prepare_data[2],
-    #     #         relative_id=prepare_data[3],
-    #     #         follower_ids=prepare_data[4:],
-    #     #         channel=channel
-    #     #     )
-    #     # except Exception:
-    #     #     return False
 
     def get_thai_date(self, date_str):
         thai_days = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์", "เสาร์", "อาทิตย์"]

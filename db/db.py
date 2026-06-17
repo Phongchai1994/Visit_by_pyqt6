@@ -5,6 +5,7 @@ import traceback
 import inspect
 from dotenv import load_dotenv
 from psycopg2 import Binary
+from typing import Optional
 load_dotenv(load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '.env')))
 
 def log_db_exceptions(func):
@@ -546,6 +547,49 @@ class POSTGRESQL():
             count_month = cur.fetchone()[0]
             
             return count_today,count_month
+
+    @log_db_exceptions
+    def get_all_available_slots_by_date(self, date_visit: str, all_rounds: list) -> dict:
+        '''
+        ดึงข้อมูลการจองของทุกรอบในวันที่ระบุ และคำนวนหาช่องว่าง (1-14)\n
+        คืนค่ากลับไปเป็น dict เช่น {"09:30:00": 4, "10:00:00": 1, "10:30:00": None}'''
+        query = (
+            '''
+            SELECT time_visit, channel
+            FROM visits
+            WHERE date_visit = %s
+            AND channel BETWEEN 1 AND 14
+            ORDER BY time_visit ASC, channel ASC;            
+            '''
+        )
+
+        # เตรียม dict โครงสร้างเริ่มต้นสำหรับทุกรอบเวลา ให้ค่าเริ่มต้นเป็นเซ็ตว่างเอาไว้เก็บช่องที่เต็ม
+        # โครงสร้างชั่วคราว : {"09:30:00":{1,2,3}}
+
+        occupied_slots_by_time = {round_info[1]: set() for round_info in all_rounds}
+
+        with self.conn.cursor() as cur:
+            cur.execute(query, (date_visit,))
+            for row in cur.fetchall():
+                time_str = str(row[0])
+                channel_num = row[1]
+                if time_str in occupied_slots_by_time:
+                    occupied_slots_by_time[time_str].add(channel_num)
+
+            # คำนวนหาค่าช่องแรกที่ว่าง (1-14) ของแต่ละรอบเวลาเพื่อทำเป็นผลลัพธ์สุดท้าย
+            result_slots = {}
+            for time_str, occupied_set in occupied_slots_by_time.items():
+                first_free_slot = None
+                for slot in range(1, 15):
+                    if slot not in occupied_set:
+                        first_free_slot = slot
+                        break
+                
+                # เก็บค่าลง dict ผลลัพธ์ หาเต็ม 14 ช่อง จะคืนค่า None
+                result_slots[time_str] = first_free_slot
+
+            return result_slots # คืนค่า dict เช่น {"09:30:00": 4, "10:00:00": 1, ...}
+
 
     @log_db_exceptions
     def get_channel(self, date, round_time):
