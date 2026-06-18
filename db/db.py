@@ -3,10 +3,11 @@ import os
 import hashlib
 import traceback
 import inspect
-from dotenv import load_dotenv
 from psycopg2 import Binary
 from typing import Optional
-load_dotenv(load_dotenv(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '.env')))
+from psycopg2.extensions import connection
+from utils import config_env
+
 
 def log_db_exceptions(func):
     def wrapper(self, *args, **kwargs):
@@ -24,13 +25,16 @@ def log_db_exceptions(func):
 
 class POSTGRESQL():
     def __init__(self):
-        self.conn = psycopg2.connect(
-            host=os.getenv("PG_HOST"),
-            port=os.getenv("PG_PORT"),
-            dbname=os.getenv("PG_NAME"),
-            user=os.getenv("PG_USER"),
-            password=os.getenv("PG_PASS")
-        )
+        self.conn: connection | None = None
+        self.connection_params = {
+            "host": os.getenv("PG_HOST"),
+            "port": os.getenv("PG_PORT"),
+            "dbname": os.getenv("PG_NAME"),
+            "user": os.getenv("PG_USER"),
+            "password": os.getenv("PG_PASS")
+        }
+        # print(self.connection_params)
+        self.conn: connection = psycopg2.connect(**self.connection_params)
         self.conn.autocommit = True
         # self.create_tables_if_not_exist()
 
