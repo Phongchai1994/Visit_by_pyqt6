@@ -38,6 +38,14 @@ class POSTGRESQL():
         self.conn.autocommit = True
         # self.create_tables_if_not_exist()
 
+    def close(self):
+        if self.conn:
+            try:
+                self.conn.close()
+                print('close database')
+            except Exception:
+                pass
+            self.conn = None
 
     @log_db_exceptions
     def create_tables_if_not_exist(self):

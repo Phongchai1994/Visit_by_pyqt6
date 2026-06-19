@@ -1,4 +1,5 @@
 import sys
+import atexit
 from user.login import LOGIN
 
 from utils.resource import Resource_Helper
@@ -12,6 +13,10 @@ from PyQt6.QtGui import (
 )
 from PyQt6.QtCore import Qt, QCoreApplication
 from utils.resource import Resource_Helper
+from db.db import POSTGRESQL
+
+db = POSTGRESQL()
+atexit.register(lambda: db.close() if hasattr(db, 'close') else None)
 
 if __name__ == '__main__':
     try: 
@@ -40,7 +45,9 @@ if __name__ == '__main__':
         if window.status:
             window.setWindowIcon(QIcon(Resource_Helper.resource_path('ico.ico')))
             window.show()
-            sys.exit(app.exec())
+            exit_close = app.exec()
+            db.close()
+            sys.exit(exit_close)
     except Exception as e:
         import traceback
         print("Exception:", e)
